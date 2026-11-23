@@ -1,0 +1,118 @@
+import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent";
+import { Type } from "typebox";
+import { ID_PATTERN, loadAll, pageExists, readPage, serializePage, writePage, bodyLinks, type Page } from "../wiki/store.ts";
+import { pageType, PAGE_TYPES } from "../wiki/schema.ts";
+import { verifyProject } from "../wiki/verify.ts";
+
+const text = (t: string) => ({ content: [{ type: "text" as const, text: t }], details: {} });
+
+// `changed` collects the pages written during a run, for the commit message.
+export function wikiTools(projectDir: string, changed: Set<string>): ToolDefinition[] {
+	const list = defineTool({
+		name: "wiki_list",
+		label: "Listar páginas",
+		description: "List wiki pages (id, title, status). Optionally filter by page type.",
+		parameters: Type.Object({ type: Type.Optional(Type.String({ description: "Page type, e.g. personaje" })) }),
+		async execute(_id, { type }) {
+			const { pages, broken } = loadAll(projectDir);
+			const rows = pages.filter((p) => !type || p.type === type).map((p) => `${p.id} — ${p.title} [${p.status}]`);
+			const bad = broken.map((b) => `${b.id} — ILEGIBLE: ${b.error}`);
+			return text([...rows, ...bad].join("\n") || "(sin páginas)");
+		},
+	});
+
+	const read = defineTool({
+		name: "wiki_read",
+		label: "Leer página",
+		description: "Read one wiki page in full (YAML card + prose), plus the pages that link to it.",
+		parameters: Type.Object({ id: Type.String() }),
+		async execute(_id, { id }) {
+			if (!pageExists(projectDir, id)) throw new Error(`no existe la página "${id}"`);
+			const backlinks = loadAll(projectDir).pages
+				.filter((p) => p.id !== id && (p.relations.some((r) => r.target === id) || bodyLinks(p.body).includes(id)))
+				.map((p) => p.id);
+			const page = serializePage(readPage(projectDir, id));
+			return text(`${page}\nEnlazada desde: ${backlinks.join(", ") || "(nadie)"}`);
+		},
+	});
+
+	const search = defineTool({
+		name: "wiki_search",
+		label: "Buscar en la wiki",
+		description: "Case-insensitive text search across titles, card fields and prose.",
+		parameters: Type.Object({ query: Type.String() }),
+		async execute(_id, { query }) {
+			const q = query.toLowerCase();
+			const hits = loadAll(projectDir).pages.flatMap((p) => {
+				const haystack = `${p.title}\n${JSON.stringify(p.fields)}\n${p.body}`;
+				const at = haystack.toLowerCase().indexOf(q);
+				return at < 0 ? [] : [`${p.id}: …${haystack.slice(Math.max(0, at - 60), at + 80).replace(/\n/g, " ")}…`];
+			});
+			return text(hits.join("\n") || "(sin resultados)");
+		},
+	});
+
+	const write = defineTool({
+		name: "wiki_write",
+		label: "Escribir página",
+		description:
+			"Create or update a wiki page. The page type comes from the id prefix (personaje/ana-robles) or is 'portada'. " +
+			"On update, `fields` are merged key by key (a null value removes the key); `relations`, `body` and `notes` replace the old value when given. " +
+			"Any page you write becomes a draft (borrador); locked pages (bloqueada) cannot be written.",
+		parameters: Type.Object({
+			id: Type.String({ description: "portada, or <type>/<slug> with lowercase ascii and dashes" }),
+			title: Type.Optional(Type.String()),
+			fields: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+			relations: Type.Optional(Type.Array(Type.Object({ type: Type.String(), target: Type.String(), note: Type.Optional(Type.String()) }))),
+			body: Type.Optional(Type.String({ description: "Markdown prose. Link pages with [[id]] or [[id|label]]." })),
+			notes: Type.Optional(Type.String({ description: "Author notes: intentions, doubts, open questions. Never shown to readers." })),
+			visibility: Type.Optional(Type.Union([Type.Literal("interna"), Type.Literal("spoiler"), Type.Literal("publica")])),
+		}),
+		async execute(_id, args) {
+			if (!ID_PATTERN.test(args.id)) throw new Error(`id inválido "${args.id}": usa portada o tipo/nombre-en-minusculas`);
+			const type = args.id === "portada" ? "portada" : args.id.split("/")[0];
+			if (!pageType(type)) throw new Error(`tipo desconocido "${type}". Tipos: ${PAGE_TYPES.map((t) => t.type).join(", ")}`);
+
+			const existing = pageExists(projectDir, args.id) ? readPage(projectDir, args.id) : undefined;
+			if (existing?.status === "bloqueada") throw new Error(`"${args.id}" está bloqueada por el autor; pídele que la desbloquee`);
+			if (!existing && !args.title) throw new Error("una página nueva necesita título");
+
+			const fields = { ...existing?.fields };
+			for (const [k, v] of Object.entries(args.fields ?? {})) {
+				if (v === null) delete fields[k];
+				else fields[k] = v;
+			}
+			const page: Page = {
+				id: args.id,
+				type,
+				title: args.title ?? existing!.title,
+				status: "borrador",
+				visibility: args.visibility ?? existing?.visibility ?? "interna",
+				fields,
+				relations: args.relations ?? existing?.relations ?? [],
+				notes: args.notes ?? existing?.notes,
+				body: args.body ?? existing?.body ?? "",
+			};
+			writePage(projectDir, page);
+			changed.add(args.id);
+
+			const issues = verifyProject(projectDir).filter((i) => i.page === args.id);
+			const reopened = existing?.status === "aprobada" ? " Estaba aprobada: vuelve a borrador hasta que el autor la apruebe." : "";
+			const report = issues.length ? `\nVerificador:\n${issues.map((i) => `- [${i.level}] ${i.message}`).join("\n")}` : "";
+			return text(`${existing ? "Actualizada" : "Creada"} ${args.id}.${reopened}${report}`);
+		},
+	});
+
+	const verify = defineTool({
+		name: "wiki_verify",
+		label: "Verificar wiki",
+		description: "Run the verifier over the whole wiki: invalid cards, missing required fields, broken links and relations.",
+		parameters: Type.Object({}),
+		async execute() {
+			const issues = verifyProject(projectDir);
+			return text(issues.map((i) => `[${i.level}] ${i.page}: ${i.message}`).join("\n") || "Sin problemas.");
+		},
+	});
+
+	return [list, read, search, write, verify] as ToolDefinition[];
+}

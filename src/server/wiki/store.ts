@@ -1,0 +1,97 @@
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
+import { parse, stringify } from "yaml";
+import type { Status, Visibility } from "./schema.ts";
+
+export interface Relation {
+	type: string;
+	target: string;
+	note?: string;
+}
+
+export interface Page {
+	id: string;
+	type: string;
+	title: string;
+	status: Status;
+	visibility: Visibility;
+	fields: Record<string, unknown>;
+	relations: Relation[];
+	notes?: string;
+	body: string;
+}
+
+// "portada" or "<type>/<slug>"
+export const ID_PATTERN = /^(portada|[a-z]+\/[a-z0-9]+(?:-[a-z0-9]+)*)$/;
+export const LINK_PATTERN = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
+
+const wikiDir = (projectDir: string) => join(projectDir, "wiki");
+const pagePath = (projectDir: string, id: string) => join(wikiDir(projectDir), `${id}.md`);
+
+export function serializePage(page: Page): string {
+	const { body, ...card } = page;
+	if (!card.notes) delete card.notes;
+	return `---\n${stringify(card).trimEnd()}\n---\n\n${body.trim()}\n`;
+}
+
+export function parsePage(text: string): Page {
+	const match = text.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+	if (!match) throw new Error("falta el encabezado YAML entre líneas ---");
+	const card = parse(match[1]) ?? {};
+	return {
+		id: card.id,
+		type: card.type,
+		title: card.title,
+		status: card.status ?? "borrador",
+		visibility: card.visibility ?? "interna",
+		fields: card.fields ?? {},
+		relations: card.relations ?? [],
+		notes: card.notes,
+		body: match[2].trim(),
+	};
+}
+
+export function pageExists(projectDir: string, id: string): boolean {
+	return existsSync(pagePath(projectDir, id));
+}
+
+export function readPage(projectDir: string, id: string): Page {
+	return parsePage(readFileSync(pagePath(projectDir, id), "utf8"));
+}
+
+export function writePage(projectDir: string, page: Page): void {
+	const path = pagePath(projectDir, page.id);
+	mkdirSync(dirname(path), { recursive: true });
+	writeFileSync(`${path}.tmp`, serializePage(page));
+	renameSync(`${path}.tmp`, path);
+}
+
+export function listPageFiles(projectDir: string): { id: string; file: string }[] {
+	const root = wikiDir(projectDir);
+	if (!existsSync(root)) return [];
+	return readdirSync(root, { recursive: true, withFileTypes: true })
+		.filter((e) => e.isFile() && e.name.endsWith(".md"))
+		.map((e) => {
+			const file = join(e.parentPath, e.name);
+			return { id: relative(root, file).slice(0, -3), file };
+		})
+		.sort((a, b) => a.id.localeCompare(b.id));
+}
+
+// Pages that fail to parse are returned as errors so the verifier can report them.
+export function loadAll(projectDir: string): { pages: Page[]; broken: { id: string; error: string }[] } {
+	const pages: Page[] = [];
+	const broken: { id: string; error: string }[] = [];
+	for (const { id, file } of listPageFiles(projectDir)) {
+		try {
+			pages.push(parsePage(readFileSync(file, "utf8")));
+		} catch (e) {
+			broken.push({ id, error: (e as Error).message });
+		}
+	}
+	return { pages, broken };
+}
+
+export function bodyLinks(body: string): string[] {
+	return [...body.matchAll(LINK_PATTERN)].map((m) => m[1].trim());
+}
