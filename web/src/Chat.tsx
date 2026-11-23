@@ -157,7 +157,7 @@ export function Chat({ project, onPagesChanged, top }: { project: string; onPage
 				<span>Agente</span>
 				<span className="muted">{model}</span>
 			</div>
-			<div className="mobile-only">{top}</div>
+			{top}
 			<div className="messages">
 				{items.length === 0 && <p className="muted">Cuéntale al agente la idea de tu juego.</p>}
 				{items.map((m, i) =>

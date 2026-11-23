@@ -116,7 +116,6 @@ export function App() {
 			) : (
 				<div className={`workspace show-${mobileTab}`}>
 					<aside className="sidebar">
-						<NextStep project={project} revision={revision} onWork={() => setMobileTab("chat")} />
 						<a className={`side-link ${route.view === "verificar" ? "active" : ""}`} href={`#/${project}/verificar`}>
 							Verificador
 						</a>
@@ -163,7 +162,7 @@ export function App() {
 					<Chat
 						project={project}
 						onPagesChanged={refresh}
-						top={<NextStep project={project} revision={revision} compact onWork={() => {}} />}
+						top={<NextStep project={project} revision={revision} />}
 					/>
 				</div>
 			)}
