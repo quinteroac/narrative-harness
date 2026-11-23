@@ -1,8 +1,10 @@
 // Page types of the wiki. Each type has a structured card ("ficha") and free prose.
 // Fields are kept loose on purpose: required fields only produce warnings while a page is a draft.
 
-// "fundamentos" is the plan's list of items: { titulo, paginas, cantidad?, nota? }
-export type FieldKind = "text" | "number" | "list" | "boolean" | "fundamentos";
+// "fundamentos" is the plan's list of items: { titulo, paginas, cantidad?, nota? }.
+// "choice" takes one of `options`. "conditions" and "effects" are lists of expressions (see expr.ts).
+// "value" is a literal of any type: true, false, a number or text.
+export type FieldKind = "text" | "number" | "list" | "boolean" | "fundamentos" | "choice" | "conditions" | "effects" | "value";
 
 export interface FieldDef {
 	key: string;
@@ -12,6 +14,7 @@ export interface FieldDef {
 	hint?: string;
 	// Reveals story: treated as a spoiler even when the page is public.
 	spoiler?: boolean;
+	options?: string[];
 }
 
 export interface PageTypeDef {
@@ -27,6 +30,24 @@ export type Status = (typeof STATUSES)[number];
 
 export const VISIBILITIES = ["interna", "spoiler", "publica"] as const;
 export type Visibility = (typeof VISIBILITIES)[number];
+
+export const MECHANIC_FAMILIES = [
+	"decisiones",
+	"relaciones",
+	"atributos",
+	"tiempo",
+	"exploracion",
+	"recursos",
+	"investigacion",
+	"actividades",
+	"personalizacion",
+	"meta",
+	"propia",
+];
+
+// si_no is a boolean; contador and numero are numbers; texto and opcion are strings.
+export const VARIABLE_TYPES = ["si_no", "contador", "numero", "texto", "opcion"];
+export const PLAYER_VISIBILITY = ["visible", "insinuada", "oculta", "revelada"];
 
 export const PAGE_TYPES: PageTypeDef[] = [
 	{
@@ -83,6 +104,41 @@ export const PAGE_TYPES: PageTypeDef[] = [
 			{ key: "vestuario", label: "Vestuario", kind: "list" },
 			{ key: "arco", label: "Arco", kind: "text", spoiler: true },
 			{ key: "secretos", label: "Secretos", kind: "text", spoiler: true },
+		],
+	},
+	{
+		type: "mecanica",
+		label: "Mecánica",
+		plural: "Mecánicas",
+		fields: [
+			{ key: "proposito", label: "Propósito", kind: "text", required: true, hint: "Qué experiencia busca" },
+			{ key: "pilar", label: "Pilar al que sirve", kind: "text", required: true },
+			{ key: "familia", label: "Familia", kind: "choice", required: true, options: MECHANIC_FAMILIES },
+			{ key: "acciones", label: "Acciones del jugador", kind: "list" },
+			{ key: "reglas", label: "Reglas", kind: "text", required: true },
+			{ key: "condiciones", label: "Condiciones", kind: "conditions", hint: "Una por línea, p. ej. afecto_grizka >= 10 and not rechazo_grizka # comentario" },
+			{ key: "efectos", label: "Efectos", kind: "effects", hint: "Uno por línea, p. ej. afecto_grizka += 2" },
+			{ key: "retroalimentacion", label: "Retroalimentación", kind: "text", hint: "Cómo se entera el jugador" },
+			{ key: "enganches", label: "Enganches narrativos", kind: "text", hint: "Dónde se conecta con la estructura y el guion" },
+			{ key: "necesidades", label: "Necesidades", kind: "list", hint: "Pantallas para UX y assets para producción" },
+			{ key: "parametros", label: "Parámetros de equilibrio", kind: "list" },
+			{ key: "casos_limite", label: "Casos límite", kind: "text" },
+			{ key: "ejemplo", label: "Ejemplo", kind: "text", hint: "Un recorrido concreto" },
+		],
+	},
+	{
+		type: "variable",
+		label: "Variable",
+		plural: "Variables",
+		fields: [
+			{ key: "descripcion", label: "Descripción", kind: "text", required: true },
+			{ key: "tipo", label: "Tipo", kind: "choice", required: true, options: VARIABLE_TYPES },
+			{ key: "valores", label: "Valores posibles", kind: "list", hint: "Solo para tipo opcion" },
+			{ key: "minimo", label: "Mínimo", kind: "number" },
+			{ key: "maximo", label: "Máximo", kind: "number" },
+			{ key: "inicial", label: "Valor inicial", kind: "value", required: true, hint: "true/false, un número o un texto" },
+			{ key: "visibilidad_jugador", label: "Para el jugador", kind: "choice", required: true, options: PLAYER_VISIBILITY },
+			{ key: "revelacion", label: "Cuándo se revela", kind: "text", hint: "Solo si es revelada" },
 		],
 	},
 	{

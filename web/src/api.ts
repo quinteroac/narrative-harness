@@ -46,6 +46,21 @@ export interface FieldDef {
 	required?: boolean;
 	hint?: string;
 	spoiler?: boolean;
+	options?: string[];
+}
+
+export interface RegistryEntry {
+	id: string;
+	name: string;
+	title: string;
+	tipo: string;
+	rango?: string;
+	valores?: string[];
+	inicial: unknown;
+	visibilidad: string;
+	revelacion?: string;
+	writers: string[];
+	readers: string[];
 }
 
 export interface Schema {
@@ -109,6 +124,7 @@ export const api = {
 	createPage: (project: string, type: string, title: string) => post<{ id: string }>(`${p(project)}/pages`, { type, title }),
 	savePage: (project: string, page: Page) => call<{ issues: Issue[] }>(`${p(project)}/page`, { method: "PUT", body: JSON.stringify(page) }),
 	progress: (project: string) => call<Progress>(`${p(project)}/progress`),
+	registry: (project: string) => call<RegistryEntry[]>(`${p(project)}/registry`),
 	verify: (project: string) => call<Issue[]>(`${p(project)}/verify`),
 	chat: (project: string) => call<{ items: ChatItem[]; busy: boolean; model: string }>(`${p(project)}/chat`),
 	send: (project: string, message: string) => post(`${p(project)}/chat`, { message }),

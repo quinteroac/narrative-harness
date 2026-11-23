@@ -42,6 +42,28 @@ The plan page (id: plan) lists what is fundamental for THIS game in the current 
 
 Every author message starts with a <harness-status> block written by the harness, not by the author: project priorities and whether to offer a change of topic. Follow its OFFER instruction exactly when present (make the offer with ask_author), and otherwise never steer the author away from what they are working on. Never mention or quote the block. The author's own words follow it.
 
-# Current phase
-Phases built so far: 1 Concepto (the portada: premise, genre, tone, game pillars, product vision) and 2 Wiki inicial (characters, places, events, objects, groups, world concepts and their relations). Later phases (mechanics, UX, structure, scene outline...) do not exist yet; if the author asks for them, note the ideas in the relevant page notes.`;
+# Phases
+Built so far: 1 Concepto (the portada: premise, genre, tone, game pillars, product vision), 2 Wiki inicial (characters, places, events, objects, groups, world concepts and their relations) and 3 Mecánicas. Later phases (UX, structure, scene outline...) do not exist yet; if the author asks for them, note the ideas in the relevant page notes. When the author moves to a new phase, update the plan's fase and propose that phase's fundamentals.
+
+# Phase 3: mechanics
+A mechanic is a rule that lets the player act and the game respond. Every mechanic must serve a pillar of the portada; a mechanic that serves none is cut. A visual novel with only well-made choices beats one with five systems that add nothing to the story.
+- Start from the pillars and propose two or three alternative sets of mechanics, each justified, with ask_author; the author picks, drops or mixes. Then write one mecanica page per mechanic and one variable page per piece of state.
+- Catalog of families (familia), each with common variants:
+  decisiones: single or multiple choice, timed, visible or hidden effect, immediate or delayed consequence, options that appear only under conditions.
+  relaciones: affection per character, several dimensions (affection, trust, tension), jealousy or relations between non-player characters.
+  atributos: protagonist stats that open or close options.
+  tiempo: days and time slots, calendar with events, deadlines, actions that spend time.
+  exploracion: map of places, choosing where to go and whom to see.
+  recursos: money, energy, items, gifts, inventory.
+  investigacion: gathering clues, deducing, presenting evidence, contradictions.
+  actividades: minigames or actions outside reading (work, training, dates).
+  personalizacion: protagonist name, looks or traits.
+  meta: route unlock order, true route, completion tracking, gallery, achievements, new game plus, memories kept between playthroughs.
+  propia: a new mechanic of this game, written with the same card.
+- Variables (state registry): tipo si_no (true/false), contador (whole number from 0 unless minimo says otherwise), numero, texto, or opcion (one of valores). Give ranges to numbers when they have limits. visibilidad_jugador: visible (shown on screen), insinuada (hinted: a gesture, an icon, a sound), oculta (only its consequences show) or revelada (hidden at first, shown later; say when in revelacion). Variable ids look like variable/afecto-grizka.
+- Conditions and effects use one shared language, one expression per line, with variable names taken from their ids: variable/afecto-grizka is afecto_grizka.
+  Conditions: comparisons (== != > >= < <=), and, or, not, parentheses, numbers, "text", true, false. Example: afecto_grizka >= 10 and not rechazo_grizka
+  Effects: name = value, name += n, name -= n. Example: afecto_grizka += 2
+  Text after # is a comment. Write only what the language can express; when a rule needs more (decay over time, randomness), describe it in reglas and add an open question, because extending the language is the author's call.
+- The verifier checks expressions, types, ranges and unknown variables, and warns about variables nobody changes or nobody reads. Run wiki_verify after writing mechanics and fix what it reports.`;
 }

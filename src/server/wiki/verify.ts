@@ -1,4 +1,5 @@
 import { listPageFiles, loadAll, bodyLinks, ID_PATTERN, typeOfId, type Page } from "./store.ts";
+import { checkMechanics } from "./mechanics.ts";
 import { pageType, RELATION_TYPES, STATUSES, VISIBILITIES } from "./schema.ts";
 
 export interface Issue {
@@ -37,6 +38,9 @@ function checkPage(page: Page, file: string, ids: Set<string>, issues: Issue[]) 
 		if (field.kind === "number" && typeof value !== "number") add("error", `"${field.label}" debe ser un número`);
 		if (field.kind === "list" && !Array.isArray(value)) add("error", `"${field.label}" debe ser una lista`);
 		if (field.kind === "boolean" && typeof value !== "boolean") add("error", `"${field.label}" debe ser sí/no`);
+		if (field.kind === "choice" && !field.options?.includes(String(value))) add("error", `"${field.label}" debe ser uno de: ${field.options?.join(", ")}`);
+		if ((field.kind === "conditions" || field.kind === "effects") && (!Array.isArray(value) || value.some((v) => typeof v !== "string")))
+			add("error", `"${field.label}" debe ser una lista de expresiones, una por línea`);
 		if (field.kind === "fundamentos") {
 			if (!Array.isArray(value)) add("error", `"${field.label}" debe ser una lista`);
 			else
@@ -71,6 +75,7 @@ export function verifyProject(projectDir: string): Issue[] {
 	const issues: Issue[] = broken.map((b) => ({ level: "error" as const, page: b.id, message: `no se puede leer: ${b.error}` }));
 	const parsed = files.filter((f) => !broken.some((b) => b.id === f));
 	pages.forEach((page, i) => checkPage(page, parsed[i], ids, issues));
+	issues.push(...checkMechanics(pages).issues);
 	if (!ids.has("portada")) issues.push({ level: "error", page: "portada", message: "el proyecto no tiene portada" });
 	return issues;
 }

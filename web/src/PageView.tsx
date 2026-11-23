@@ -180,7 +180,21 @@ export function PageView(props: {
 										{f.required && <span className="req">*</span>}
 										{f.spoiler && <span className="spoiler-tag" title="Revela la historia aunque la página sea pública">spoiler</span>}
 									</th>
-									<td>{page.fields[f.key] === undefined ? "—" : <FieldValue value={page.fields[f.key]} project={project} />}</td>
+									<td>
+										{page.fields[f.key] === undefined ? (
+											"—"
+										) : (f.kind === "conditions" || f.kind === "effects") && Array.isArray(page.fields[f.key]) ? (
+											<ul className="exprs">
+												{(page.fields[f.key] as string[]).map((e, n) => (
+													<li key={n}>
+														<code>{e}</code>
+													</li>
+												))}
+											</ul>
+										) : (
+											<FieldValue value={page.fields[f.key]} project={project} />
+										)}
+									</td>
 								</tr>
 							))}
 							{extraKeys.map((k) => (

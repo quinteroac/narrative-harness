@@ -3,6 +3,7 @@ import { api, type PageSummary, type Project, type Schema } from "./api.ts";
 import { Chat } from "./Chat.tsx";
 import { NextStep } from "./NextStep.tsx";
 import { PageView } from "./PageView.tsx";
+import { RegistryView } from "./RegistryView.tsx";
 import { VerifyView } from "./VerifyView.tsx";
 
 // Routes: #/<project>, #/<project>/p/<page id>, #/<project>/verificar
@@ -119,6 +120,9 @@ export function App() {
 						<a className={`side-link ${route.view === "verificar" ? "active" : ""}`} href={`#/${project}/verificar`}>
 							Verificador
 						</a>
+						<a className={`side-link ${route.view === "estado" ? "active" : ""}`} href={`#/${project}/estado`}>
+							Registro de estado
+						</a>
 						<button className="side-button" onClick={newPage}>
 							+ Nueva página
 						</button>
@@ -146,6 +150,8 @@ export function App() {
 					<main className="content">
 						{route.view === "verificar" ? (
 							<VerifyView project={project} revision={revision} />
+						) : route.view === "estado" ? (
+							<RegistryView project={project} revision={revision} />
 						) : (
 							<PageView
 								project={project}

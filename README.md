@@ -2,7 +2,7 @@
 
 Herramienta web para diseñar juegos narrativos junto a un agente ([pi](https://github.com/earendil-works/pi)). El diseño de cada juego vive en una wiki: páginas con ficha estructurada para el agente y prosa legible para personas. El harness no desarrolla el juego; produce el diseño y el contenido para implementarlo en cualquier motor.
 
-Estado: bloque 0 (cimientos) — proyectos, wiki, verificador, agente con herramientas de wiki y web con chat.
+Estado: fases 1–3 (concepto, wiki inicial, mecánicas) — wiki con ficha y prosa, plan de fundamentos, verificador, registro de estado con lenguaje de condiciones y efectos, agente con herramientas de wiki y web con chat.
 
 ## Requisitos
 

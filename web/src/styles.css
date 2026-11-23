@@ -819,3 +819,33 @@ button.link {
 .approval > .primary {
 	margin-top: 6px;
 }
+
+.exprs {
+	list-style: none;
+	padding: 0 !important;
+	margin: 0;
+}
+
+.exprs code,
+.registry code {
+	font-family: ui-monospace, "SF Mono", Menlo, monospace;
+	font-size: 13px;
+}
+
+.editor textarea.code {
+	font-family: ui-monospace, "SF Mono", Menlo, monospace;
+	font-size: 13px;
+}
+
+.table-scroll {
+	overflow-x: auto;
+}
+
+.registry .card th {
+	width: auto;
+}
+
+.registry .card thead th {
+	font-size: 13px;
+	white-space: nowrap;
+}

@@ -4,7 +4,7 @@ import { api, type FieldDef, type Page, type PageSummary, type Relation, type Sc
 // Field values are edited as text and converted back to the card's types on save.
 function toText(field: FieldDef, value: unknown): string {
 	if (value === undefined || value === null) return "";
-	if (field.kind === "list" && Array.isArray(value)) return value.join("\n");
+	if ((field.kind === "list" || field.kind === "conditions" || field.kind === "effects") && Array.isArray(value)) return value.join("\n");
 	if (field.kind === "boolean") return value ? "si" : "no";
 	return String(value);
 }
@@ -12,7 +12,8 @@ function toText(field: FieldDef, value: unknown): string {
 function fromText(field: FieldDef, text: string): unknown {
 	const t = text.trim();
 	if (!t) return undefined;
-	if (field.kind === "list") return t.split("\n").map((s) => s.trim()).filter(Boolean);
+	if (field.kind === "list" || field.kind === "conditions" || field.kind === "effects") return t.split("\n").map((s) => s.trim()).filter(Boolean);
+	if (field.kind === "value") return t === "true" ? true : t === "false" ? false : Number.isNaN(Number(t)) ? t : Number(t);
 	if (field.kind === "boolean") return t === "si";
 	if (field.kind === "number") return Number.isNaN(Number(t)) ? t : Number(t);
 	return t;
@@ -148,10 +149,19 @@ export function PageEditor(props: {
 					<span>
 						{f.label}
 						{f.required && <span className="req">*</span>}
-						{f.kind === "list" && <small className="muted"> (uno por línea)</small>}
+						{["list", "conditions", "effects"].includes(f.kind) && <small className="muted"> (uno por línea)</small>}
 					</span>
 					{f.kind === "fundamentos" ? (
 						<FundamentosEditor items={fundamentos} setItems={setFundamentos} pages={pages} />
+					) : f.kind === "choice" ? (
+						<select value={values[f.key]} onChange={(e) => setValues({ ...values, [f.key]: e.target.value })}>
+							<option value="">—</option>
+							{f.options?.map((o) => (
+								<option key={o} value={o}>
+									{o}
+								</option>
+							))}
+						</select>
 					) : f.kind === "boolean" ? (
 						<select value={values[f.key]} onChange={(e) => setValues({ ...values, [f.key]: e.target.value })}>
 							<option value="">—</option>
@@ -162,7 +172,8 @@ export function PageEditor(props: {
 						<input type="number" value={values[f.key]} onChange={(e) => setValues({ ...values, [f.key]: e.target.value })} />
 					) : (
 						<textarea
-							rows={f.kind === "list" ? 3 : 2}
+							className={f.kind === "conditions" || f.kind === "effects" ? "code" : undefined}
+							rows={f.kind === "text" ? 2 : 3}
 							placeholder={f.hint}
 							value={values[f.key]}
 							onChange={(e) => setValues({ ...values, [f.key]: e.target.value })}
