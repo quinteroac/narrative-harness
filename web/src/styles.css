@@ -477,3 +477,71 @@ button:disabled {
 		border-left: none;
 	}
 }
+
+.side-button {
+	display: block;
+	width: calc(100% - 8px);
+	margin: 8px 4px 0;
+	text-align: left;
+}
+
+.editor .field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-bottom: 12px;
+}
+
+.editor .field > span {
+	font-size: 13px;
+	color: var(--muted);
+}
+
+.editor input,
+.editor select,
+.editor textarea {
+	font: inherit;
+	color: inherit;
+	background: var(--panel);
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	padding: 6px 8px;
+	width: 100%;
+}
+
+.editor textarea {
+	resize: vertical;
+}
+
+.editor .prose-input {
+	min-height: 260px;
+	font-family: ui-monospace, "SF Mono", Menlo, monospace;
+	font-size: 14px;
+}
+
+.relation-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr 1.2fr auto;
+	gap: 6px;
+	margin-bottom: 6px;
+}
+
+.relation-row input,
+.relation-row select {
+	width: 100%;
+}
+
+.small {
+	font-size: 13px;
+	margin: 0 0 6px;
+}
+
+@media (max-width: 800px) {
+	.relation-row {
+		grid-template-columns: 1fr 1fr auto;
+	}
+
+	.relation-row input {
+		grid-column: 1 / 3;
+	}
+}

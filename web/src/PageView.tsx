@@ -2,6 +2,7 @@ import { marked } from "marked";
 import { useEffect, useState } from "react";
 import { api, type PageDetail, type PageSummary, type Schema } from "./api.ts";
 import { pageHref } from "./App.tsx";
+import { PageEditor } from "./PageEditor.tsx";
 
 const VISIBILITY_LABEL: Record<string, string> = { interna: "Interna", spoiler: "Con spoilers", publica: "Pública" };
 
@@ -40,8 +41,10 @@ export function PageView(props: {
 	pages: PageSummary[];
 	revision: number;
 	onChanged: () => void;
+	editing: boolean;
+	setEditing: (editing: boolean) => void;
 }) {
-	const { project, pageId, schema, pages, revision, onChanged } = props;
+	const { project, pageId, schema, pages, revision, onChanged, editing, setEditing } = props;
 	const [detail, setDetail] = useState<PageDetail>();
 	const [error, setError] = useState("");
 
@@ -57,6 +60,20 @@ export function PageView(props: {
 	if (!detail) return null;
 
 	const { page, backlinks, issues, history } = detail;
+	if (editing)
+		return (
+			<PageEditor
+				key={page.id}
+				project={project}
+				page={page}
+				schema={schema}
+				pages={pages}
+				onDone={(saved) => {
+					setEditing(false);
+					if (saved) onChanged();
+				}}
+			/>
+		);
 	const def = schema?.pageTypes.find((t) => t.type === page.type);
 	const extraKeys = Object.keys(page.fields).filter((k) => !def?.fields.some((f) => f.key === k));
 	const title = (id: string) => pages.find((p) => p.id === id)?.title ?? id;
@@ -77,6 +94,7 @@ export function PageView(props: {
 				<span className={`badge ${page.status}`}>{page.status}</span>
 				<span className="badge">{VISIBILITY_LABEL[page.visibility] ?? page.visibility}</span>
 				<span className="actions">
+					<button onClick={() => setEditing(true)}>Editar</button>
 					{page.status !== "aprobada" && page.status !== "bloqueada" && <button onClick={() => setStatus("aprobada")}>Aprobar</button>}
 					{page.status !== "bloqueada" ? (
 						<button onClick={() => setStatus("bloqueada")}>Bloquear</button>

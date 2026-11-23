@@ -6,9 +6,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { ProjectAgent } from "./agent/session.ts";
 import { config, ROOT } from "./config.ts";
-import { commit, createProject, history, listProjects, projectDir } from "./projects.ts";
-import { PAGE_TYPES, RELATION_TYPES, STATUSES, type Status } from "./wiki/schema.ts";
-import { bodyLinks, loadAll, pageExists, readPage, writePage } from "./wiki/store.ts";
+import { commit, commitManualEdits, createProject, history, listProjects, projectDir, slugify } from "./projects.ts";
+import { PAGE_TYPES, pageType, RELATION_TYPES, STATUSES, VISIBILITIES, type Status } from "./wiki/schema.ts";
+import { bodyLinks, loadAll, pageExists, readPage, writePage, type Page } from "./wiki/store.ts";
 import { isEmpty, verifyProject } from "./wiki/verify.ts";
 
 const agents = new Map<string, Promise<ProjectAgent>>();
@@ -73,9 +73,48 @@ app.post("/api/projects/:p/status", async (c) => {
 		const missing = PAGE_TYPES.find((t) => t.type === page.type)?.fields.filter((f) => f.required && isEmpty(page.fields[f.key])) ?? [];
 		if (errors.length || missing.length) throw new Error(`no se puede ${status === "aprobada" ? "aprobar" : "bloquear"}: ${[...errors.map((e) => e.message), ...missing.map((f) => `falta "${f.label}"`)].join("; ")}`);
 	}
+	commitManualEdits(dir);
 	writePage(dir, { ...page, status });
 	commit(dir, `autor: ${status} ${id}`);
 	return c.json({ ok: true });
+});
+
+app.post("/api/projects/:p/pages", async (c) => {
+	const dir = projectDir(c.req.param("p"));
+	const { type, title } = await c.req.json<{ type: string; title: string }>();
+	const def = pageType(type);
+	if (!def || def.singleton) throw new Error(`no se pueden crear páginas de tipo "${type}"`);
+	if (!title?.trim()) throw new Error("la página necesita un título");
+	const base = `${type}/${slugify(title)}`;
+	let id = base;
+	for (let n = 2; pageExists(dir, id); n++) id = `${base}-${n}`;
+	commitManualEdits(dir);
+	writePage(dir, { id, type, title: title.trim(), status: "borrador", visibility: "interna", fields: {}, relations: [], body: "" });
+	commit(dir, `autor: crea ${id}`);
+	return c.json({ id });
+});
+
+// Author edits keep the page status: an approved page the author changes stays approved.
+app.put("/api/projects/:p/page", async (c) => {
+	const dir = projectDir(c.req.param("p"));
+	const edited = await c.req.json<Page>();
+	const existing = readPage(dir, edited.id);
+	if (!edited.title?.trim()) throw new Error("la página necesita un título");
+	if (!VISIBILITIES.includes(edited.visibility)) throw new Error(`visibilidad desconocida "${edited.visibility}"`);
+	commitManualEdits(dir);
+	writePage(dir, {
+		id: existing.id,
+		type: existing.type,
+		title: edited.title.trim(),
+		status: existing.status,
+		visibility: edited.visibility,
+		fields: edited.fields ?? {},
+		relations: (edited.relations ?? []).filter((r) => r.type && r.target),
+		notes: edited.notes?.trim() || undefined,
+		body: edited.body ?? "",
+	});
+	commit(dir, `autor: edita ${existing.id}`);
+	return c.json({ issues: verifyProject(dir).filter((i) => i.page === existing.id) });
 });
 
 app.get("/api/projects/:p/verify", (c) => c.json(verifyProject(projectDir(c.req.param("p")))));

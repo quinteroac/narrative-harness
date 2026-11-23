@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, type PageSummary, type Project, type Schema } from "./api.ts";
 import { Chat } from "./Chat.tsx";
 import { PageView } from "./PageView.tsx";
@@ -22,9 +22,16 @@ export function App() {
 	const [revision, setRevision] = useState(0);
 	const [mobileTab, setMobileTab] = useState<"wiki" | "chat">("chat");
 	const [error, setError] = useState("");
+	const [editing, setEditing] = useState(false);
+	const editAfterNavigation = useRef("");
 
 	useEffect(() => {
-		const onHash = () => setRoute(parseHash());
+		const onHash = () => {
+			const next = parseHash();
+			setRoute(next);
+			setEditing(editAfterNavigation.current === next.pageId);
+			editAfterNavigation.current = "";
+		};
 		window.addEventListener("hashchange", onHash);
 		api.schema().then(setSchema);
 		api.projects().then(setProjects);
@@ -46,6 +53,24 @@ export function App() {
 			const created = await api.createProject(title);
 			setProjects(await api.projects());
 			location.hash = `#/${created.id}`;
+		} catch (e) {
+			setError((e as Error).message);
+		}
+	}
+
+	async function newPage() {
+		const types = schema?.pageTypes.filter((t) => t.type !== "portada") ?? [];
+		const choice = prompt(`Tipo de página:\n${types.map((t, i) => `${i + 1}. ${t.label}`).join("\n")}`, "1");
+		const type = types[Number(choice) - 1];
+		if (!type) return;
+		const title = prompt(`Título del ${type.label.toLowerCase()}`);
+		if (!title?.trim()) return;
+		try {
+			const { id } = await api.createPage(project, type.type, title);
+			refresh();
+			editAfterNavigation.current = id;
+			location.hash = pageHref(project, id);
+			setMobileTab("wiki");
 		} catch (e) {
 			setError((e as Error).message);
 		}
@@ -92,6 +117,9 @@ export function App() {
 						<a className={`side-link ${route.view === "verificar" ? "active" : ""}`} href={`#/${project}/verificar`}>
 							Verificador
 						</a>
+						<button className="side-button" onClick={newPage}>
+							+ Nueva página
+						</button>
 						{schema?.pageTypes.map((t) => {
 							const ofType = pages.filter((p) => p.type === t.type);
 							if (!ofType.length) return null;
@@ -124,6 +152,8 @@ export function App() {
 								pages={pages}
 								revision={revision}
 								onChanged={refresh}
+								editing={editing}
+								setEditing={setEditing}
 							/>
 						)}
 					</main>

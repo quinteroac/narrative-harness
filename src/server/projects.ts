@@ -26,11 +26,11 @@ export function listProjects(): ProjectInfo[] {
 		.sort((a, b) => b.created.localeCompare(a.created));
 }
 
-function slugify(title: string): string {
+export function slugify(title: string): string {
 	return (
 		title
 			.normalize("NFD")
-			.replace(/[̀-ͯ]/g, "")
+			.replace(/[\u0300-\u036f]/g, "")
 			.toLowerCase()
 			.replace(/[^a-z0-9]+/g, "-")
 			.replace(/^-|-$/g, "") || "proyecto"
@@ -61,6 +61,12 @@ export function commit(dir: string, message: string): boolean {
 	if (!staged) return false;
 	execFileSync("git", ["commit", "-q", "-m", message], { cwd: dir });
 	return true;
+}
+
+// Files edited outside the harness (an editor, Obsidian) are recorded as the author's
+// before anything else commits, so they are not mixed into an agent or approval commit.
+export function commitManualEdits(dir: string): void {
+	commit(dir, "autor: ediciones manuales");
 }
 
 export function history(dir: string, path?: string): { hash: string; date: string; message: string }[] {

@@ -11,7 +11,7 @@ import {
 	type ResourceLoader,
 } from "@earendil-works/pi-coding-agent";
 import { config } from "../config.ts";
-import { commit } from "../projects.ts";
+import { commit, commitManualEdits } from "../projects.ts";
 import { systemPrompt } from "./prompt.ts";
 import { wikiTools } from "./tools.ts";
 
@@ -141,6 +141,7 @@ export class ProjectAgent {
 			return;
 		}
 		this.busy = true;
+		commitManualEdits(this.dir);
 		this.emit({ kind: "user", text: message });
 		try {
 			await this.session.prompt(message);
