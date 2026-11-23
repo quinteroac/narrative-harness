@@ -88,6 +88,7 @@ export const api = {
 	pages: (project: string) => call<{ pages: PageSummary[]; broken: { id: string; error: string }[] }>(`${p(project)}/pages`),
 	page: (project: string, id: string) => call<PageDetail>(`${p(project)}/page?id=${encodeURIComponent(id)}`),
 	setStatus: (project: string, id: string, status: string) => post(`${p(project)}/status`, { id, status }),
+	renamePage: (project: string, id: string, newId: string) => post<{ id: string }>(`${p(project)}/rename`, { id, newId }),
 	createPage: (project: string, type: string, title: string) => post<{ id: string }>(`${p(project)}/pages`, { type, title }),
 	savePage: (project: string, page: Page) => call<{ issues: Issue[] }>(`${p(project)}/page`, { method: "PUT", body: JSON.stringify(page) }),
 	verify: (project: string) => call<Issue[]>(`${p(project)}/verify`),

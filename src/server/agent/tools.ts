@@ -1,6 +1,6 @@
 import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import { ID_PATTERN, loadAll, pageExists, readPage, serializePage, writePage, bodyLinks, type Page } from "../wiki/store.ts";
+import { ID_PATTERN, loadAll, pageExists, readPage, renamePage, serializePage, writePage, bodyLinks, type Page } from "../wiki/store.ts";
 import { pageType, PAGE_TYPES } from "../wiki/schema.ts";
 import { verifyProject } from "../wiki/verify.ts";
 
@@ -103,6 +103,21 @@ export function wikiTools(projectDir: string, changed: Set<string>): ToolDefinit
 		},
 	});
 
+	const rename = defineTool({
+		name: "wiki_rename",
+		label: "Renombrar página",
+		description: "Change a page id (for example after its title changed) and update every relation and [[link]] that points to it. The type prefix stays the same.",
+		parameters: Type.Object({ id: Type.String(), new_id: Type.String() }),
+		async execute(_id, { id, new_id }) {
+			if (!pageExists(projectDir, id)) throw new Error(`no existe la página "${id}"`);
+			if (readPage(projectDir, id).status === "bloqueada") throw new Error(`"${id}" está bloqueada por el autor`);
+			const touched = renamePage(projectDir, id, new_id);
+			changed.add(new_id);
+			touched.forEach((t) => changed.add(t));
+			return text(`Renombrada ${id} → ${new_id}. Enlaces actualizados en: ${touched.join(", ") || "(ninguna)"}`);
+		},
+	});
+
 	const verify = defineTool({
 		name: "wiki_verify",
 		label: "Verificar wiki",
@@ -114,5 +129,5 @@ export function wikiTools(projectDir: string, changed: Set<string>): ToolDefinit
 		},
 	});
 
-	return [list, read, search, write, verify] as ToolDefinition[];
+	return [list, read, search, write, rename, verify] as ToolDefinition[];
 }

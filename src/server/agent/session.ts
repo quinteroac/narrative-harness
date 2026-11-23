@@ -71,7 +71,7 @@ export class ProjectAgent {
 		session.subscribe((e) => this.onEvent(e));
 	}
 
-	static async open(dir: string, title: string): Promise<ProjectAgent> {
+	static async open(dir: string): Promise<ProjectAgent> {
 		modelRuntime ??= await ModelRuntime.create();
 		const [provider, ...rest] = config.model.split("/");
 		const model = modelRuntime.getModel(provider, rest.join("/"));
@@ -86,7 +86,7 @@ export class ProjectAgent {
 			model,
 			thinkingLevel: config.thinking,
 			modelRuntime,
-			resourceLoader: resourceLoader(systemPrompt(title)),
+			resourceLoader: resourceLoader(systemPrompt()),
 			settingsManager: SettingsManager.inMemory({ enableInstallTelemetry: false, retry: { enabled: true, maxRetries: 2 } }),
 			sessionManager: SessionManager.continueRecent(dir, sessionDir),
 			tools: tools.map((t) => t.name),

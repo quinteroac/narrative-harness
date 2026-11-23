@@ -7,6 +7,7 @@ const TOOL_LABEL: Record<string, string> = {
 	wiki_read: "Lee",
 	wiki_search: "Busca",
 	wiki_write: "Escribe",
+	wiki_rename: "Renombra",
 	wiki_verify: "Verifica la wiki",
 };
 

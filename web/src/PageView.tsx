@@ -78,6 +78,19 @@ export function PageView(props: {
 	const extraKeys = Object.keys(page.fields).filter((k) => !def?.fields.some((f) => f.key === k));
 	const title = (id: string) => pages.find((p) => p.id === id)?.title ?? id;
 
+	async function rename() {
+		const [type, slug] = page.id.split("/");
+		const next = prompt(`Nuevo id (${type}/…). Se actualizan todos los enlaces.`, slug);
+		if (!next?.trim() || next.trim() === slug) return;
+		try {
+			const { id } = await api.renamePage(project, page.id, `${type}/${next.trim()}`);
+			onChanged();
+			location.hash = pageHref(project, id);
+		} catch (e) {
+			setError((e as Error).message);
+		}
+	}
+
 	async function setStatus(status: string) {
 		try {
 			await api.setStatus(project, page.id, status);
@@ -95,6 +108,7 @@ export function PageView(props: {
 				<span className="badge">{VISIBILITY_LABEL[page.visibility] ?? page.visibility}</span>
 				<span className="actions">
 					<button onClick={() => setEditing(true)}>Editar</button>
+					{page.id !== "portada" && <button onClick={rename}>Renombrar</button>}
 					{page.status !== "aprobada" && page.status !== "bloqueada" && <button onClick={() => setStatus("aprobada")}>Aprobar</button>}
 					{page.status !== "bloqueada" ? (
 						<button onClick={() => setStatus("bloqueada")}>Bloquear</button>
@@ -105,6 +119,7 @@ export function PageView(props: {
 				</span>
 			</div>
 			<h1>{page.title}</h1>
+			<p className="page-id muted">{page.id}</p>
 
 			{issues.length > 0 && (
 				<ul className="issues">

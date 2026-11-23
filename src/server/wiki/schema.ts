@@ -55,7 +55,8 @@ export const PAGE_TYPES: PageTypeDef[] = [
 		plural: "Personajes",
 		fields: [
 			{ key: "nombre_completo", label: "Nombre completo", kind: "text" },
-			{ key: "edad", label: "Edad", kind: "number", required: true },
+			{ key: "edad", label: "Edad", kind: "text", required: true, hint: "Años, o una descripción si no aplica: sin edad, milenaria..." },
+			{ key: "edad_aparente", label: "Edad aparente", kind: "number", hint: "Años que aparenta; todo personaje en contenido sexual aparenta y es adulto" },
 			{ key: "rol", label: "Rol en la historia", kind: "text", required: true },
 			{ key: "personalidad", label: "Personalidad", kind: "text", required: true },
 			{ key: "voz", label: "Forma de hablar", kind: "text" },

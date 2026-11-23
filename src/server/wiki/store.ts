@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { parse, stringify } from "yaml";
 import type { Status, Visibility } from "./schema.ts";
@@ -90,6 +90,33 @@ export function loadAll(projectDir: string): { pages: Page[]; broken: { id: stri
 		}
 	}
 	return { pages, broken };
+}
+
+// Changes a page id and points every relation and [[link]] to the new id.
+// Returns the ids of the other pages that were updated.
+export function renamePage(projectDir: string, oldId: string, newId: string): string[] {
+	if (oldId === "portada") throw new Error("la portada no se puede renombrar");
+	if (!ID_PATTERN.test(newId)) throw new Error(`id inválido "${newId}": usa tipo/nombre-en-minusculas`);
+	if (newId.split("/")[0] !== oldId.split("/")[0]) throw new Error("renombrar no cambia el tipo de la página");
+	if (pageExists(projectDir, newId)) throw new Error(`ya existe la página "${newId}"`);
+
+	const page = readPage(projectDir, oldId);
+	writePage(projectDir, { ...page, id: newId });
+	rmSync(pagePath(projectDir, oldId));
+
+	const touched: string[] = [];
+	for (const other of loadAll(projectDir).pages) {
+		if (other.id === newId) continue;
+		const relations = other.relations.map((r) => (r.target === oldId ? { ...r, target: newId } : r));
+		const body = other.body.replace(LINK_PATTERN, (m, id: string, label?: string) =>
+			id.trim() === oldId ? `[[${newId}${label ? `|${label}` : ""}]]` : m,
+		);
+		if (body !== other.body || relations.some((r, i) => r !== other.relations[i])) {
+			writePage(projectDir, { ...other, relations, body });
+			touched.push(other.id);
+		}
+	}
+	return touched;
 }
 
 export function bodyLinks(body: string): string[] {

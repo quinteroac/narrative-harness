@@ -44,6 +44,7 @@ export function App() {
 	useEffect(() => {
 		if (!project) return;
 		api.pages(project).then((r) => setPages(r.pages)).catch((e) => setError(e.message));
+		api.projects().then(setProjects);
 	}, [project, revision]);
 
 	async function newProject() {

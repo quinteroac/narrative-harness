@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from "node:path";
 import { parse, stringify } from "yaml";
 import { config } from "./config.ts";
-import { writePage } from "./wiki/store.ts";
+import { pageExists, readPage, writePage } from "./wiki/store.ts";
 
 export interface ProjectInfo {
 	id: string;
@@ -22,7 +22,13 @@ export function listProjects(): ProjectInfo[] {
 	if (!existsSync(config.projectsDir)) return [];
 	return readdirSync(config.projectsDir, { withFileTypes: true })
 		.filter((e) => e.isDirectory() && existsSync(join(config.projectsDir, e.name, "project.yaml")))
-		.map((e) => ({ id: e.name, ...parse(readFileSync(join(config.projectsDir, e.name, "project.yaml"), "utf8")) }))
+		.map((e) => {
+			const dir = join(config.projectsDir, e.name);
+			const { created } = parse(readFileSync(join(dir, "project.yaml"), "utf8"));
+			// The project is named by its portada, so renaming the game renames the project.
+			const title = pageExists(dir, "portada") ? readPage(dir, "portada").title : e.name;
+			return { id: e.name, title, created };
+		})
 		.sort((a, b) => b.created.localeCompare(a.created));
 }
 
@@ -44,14 +50,14 @@ export function createProject(title: string): ProjectInfo {
 	const dir = join(config.projectsDir, id);
 	mkdirSync(join(dir, ".harness"), { recursive: true });
 
-	const info = { title, created: new Date().toISOString() };
-	writeFileSync(join(dir, "project.yaml"), stringify(info));
+	const created = new Date().toISOString();
+	writeFileSync(join(dir, "project.yaml"), stringify({ created }));
 	writeFileSync(join(dir, ".gitignore"), ".harness/sessions/\n");
 	writePage(dir, { id: "portada", type: "portada", title, status: "borrador", visibility: "publica", fields: {}, relations: [], body: "" });
 
 	execFileSync("git", ["init", "-q"], { cwd: dir });
 	commit(dir, "autor: crea el proyecto");
-	return { id, ...info };
+	return { id, title, created };
 }
 
 // Every change to a project is a commit, so nothing is ever lost.

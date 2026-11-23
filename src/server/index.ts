@@ -8,7 +8,7 @@ import { ProjectAgent } from "./agent/session.ts";
 import { config, ROOT } from "./config.ts";
 import { commit, commitManualEdits, createProject, history, listProjects, projectDir, slugify } from "./projects.ts";
 import { PAGE_TYPES, pageType, RELATION_TYPES, STATUSES, VISIBILITIES, type Status } from "./wiki/schema.ts";
-import { bodyLinks, loadAll, pageExists, readPage, writePage, type Page } from "./wiki/store.ts";
+import { bodyLinks, loadAll, pageExists, readPage, renamePage, writePage, type Page } from "./wiki/store.ts";
 import { isEmpty, verifyProject } from "./wiki/verify.ts";
 
 const agents = new Map<string, Promise<ProjectAgent>>();
@@ -16,9 +16,7 @@ const agents = new Map<string, Promise<ProjectAgent>>();
 function agentFor(project: string): Promise<ProjectAgent> {
 	let agent = agents.get(project);
 	if (!agent) {
-		const dir = projectDir(project);
-		const title = listProjects().find((p) => p.id === project)?.title ?? project;
-		agent = ProjectAgent.open(dir, title);
+		agent = ProjectAgent.open(projectDir(project));
 		agent.catch(() => agents.delete(project));
 		agents.set(project, agent);
 	}
@@ -92,6 +90,15 @@ app.post("/api/projects/:p/pages", async (c) => {
 	writePage(dir, { id, type, title: title.trim(), status: "borrador", visibility: "interna", fields: {}, relations: [], body: "" });
 	commit(dir, `autor: crea ${id}`);
 	return c.json({ id });
+});
+
+app.post("/api/projects/:p/rename", async (c) => {
+	const dir = projectDir(c.req.param("p"));
+	const { id, newId } = await c.req.json<{ id: string; newId: string }>();
+	commitManualEdits(dir);
+	renamePage(dir, id, newId);
+	commit(dir, `autor: renombra ${id} → ${newId}`);
+	return c.json({ id: newId });
 });
 
 // Author edits keep the page status: an approved page the author changes stays approved.
