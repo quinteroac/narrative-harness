@@ -18,6 +18,60 @@ function fromText(field: FieldDef, text: string): unknown {
 	return t;
 }
 
+interface Fundamento {
+	titulo: string;
+	paginas?: string[];
+	cantidad?: number;
+	nota?: string;
+}
+
+function FundamentosEditor({ items, setItems, pages }: { items: Fundamento[]; setItems: (items: Fundamento[]) => void; pages: PageSummary[] }) {
+	const set = (i: number, patch: Partial<Fundamento>) => setItems(items.map((it, n) => (n === i ? { ...it, ...patch } : it)));
+	const move = (i: number, d: number) => {
+		const next = [...items];
+		[next[i], next[i + d]] = [next[i + d], next[i]];
+		setItems(next);
+	};
+	return (
+		<div className="fundamentos-editor">
+			{items.map((it, i) => (
+				<div key={i} className="fundamento-row">
+					<span className="muted">{i + 1}.</span>
+					<input placeholder="Título" value={it.titulo} onChange={(e) => set(i, { titulo: e.target.value })} />
+					<input
+						type="number"
+						min={1}
+						placeholder="Cant."
+						title="Cuántas páginas hacen falta"
+						value={it.cantidad ?? ""}
+						onChange={(e) => set(i, { cantidad: e.target.value ? Number(e.target.value) : undefined })}
+					/>
+					<input
+						list="page-ids"
+						placeholder="Páginas (ids separados por coma)"
+						value={(it.paginas ?? []).join(", ")}
+						onChange={(e) => set(i, { paginas: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
+					/>
+					<input placeholder="Nota" value={it.nota ?? ""} onChange={(e) => set(i, { nota: e.target.value || undefined })} />
+					<span className="row-actions">
+						<button disabled={i === 0} onClick={() => move(i, -1)} title="Subir prioridad">↑</button>
+						<button disabled={i === items.length - 1} onClick={() => move(i, 1)} title="Bajar prioridad">↓</button>
+						<button onClick={() => setItems(items.filter((_, n) => n !== i))} title="Quitar">×</button>
+					</span>
+				</div>
+			))}
+			<datalist id="page-ids">
+				{pages.map((p) => (
+					<option key={p.id} value={p.id}>
+						{p.title}
+					</option>
+				))}
+			</datalist>
+			<button onClick={() => setItems([...items, { titulo: "" }])}>Añadir fundamento</button>
+		</div>
+	);
+}
+
 export function PageEditor(props: {
 	project: string;
 	page: Page;
@@ -31,6 +85,8 @@ export function PageEditor(props: {
 	const [visibility, setVisibility] = useState(page.visibility);
 	const [values, setValues] = useState(() => Object.fromEntries((def?.fields ?? []).map((f) => [f.key, toText(f, page.fields[f.key])])));
 	const [relations, setRelations] = useState<Relation[]>(page.relations);
+	const planKey = def?.fields.find((f) => f.kind === "fundamentos")?.key;
+	const [fundamentos, setFundamentos] = useState<Fundamento[]>(() => (planKey && Array.isArray(page.fields[planKey]) ? (page.fields[planKey] as Fundamento[]) : []));
 	const [body, setBody] = useState(page.body);
 	const [notes, setNotes] = useState(page.notes ?? "");
 	const [error, setError] = useState("");
@@ -42,6 +98,11 @@ export function PageEditor(props: {
 		// Fields not in the schema are kept as they were.
 		const fields: Record<string, unknown> = Object.fromEntries(Object.entries(page.fields).filter(([k]) => !def?.fields.some((f) => f.key === k)));
 		for (const f of def?.fields ?? []) {
+			if (f.kind === "fundamentos") {
+				const items = fundamentos.filter((it) => it.titulo.trim());
+				if (items.length) fields[f.key] = items;
+				continue;
+			}
 			const v = fromText(f, values[f.key] ?? "");
 			if (v !== undefined) fields[f.key] = v;
 		}
@@ -89,7 +150,9 @@ export function PageEditor(props: {
 						{f.required && <span className="req">*</span>}
 						{f.kind === "list" && <small className="muted"> (uno por línea)</small>}
 					</span>
-					{f.kind === "boolean" ? (
+					{f.kind === "fundamentos" ? (
+						<FundamentosEditor items={fundamentos} setItems={setFundamentos} pages={pages} />
+					) : f.kind === "boolean" ? (
 						<select value={values[f.key]} onChange={(e) => setValues({ ...values, [f.key]: e.target.value })}>
 							<option value="">—</option>
 							<option value="si">Sí</option>

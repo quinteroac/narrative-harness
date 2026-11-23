@@ -21,8 +21,10 @@ export interface Page {
 	body: string;
 }
 
-// "portada" or "<type>/<slug>"
-export const ID_PATTERN = /^(portada|[a-z]+\/[a-z0-9]+(?:-[a-z0-9]+)*)$/;
+// A singleton page ("portada", "plan") or "<type>/<slug>"
+export const ID_PATTERN = /^(portada|plan|[a-z]+\/[a-z0-9]+(?:-[a-z0-9]+)*)$/;
+
+export const typeOfId = (id: string) => (id.includes("/") ? id.split("/")[0] : id);
 export const LINK_PATTERN = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
 
 const wikiDir = (projectDir: string) => join(projectDir, "wiki");
@@ -95,7 +97,7 @@ export function loadAll(projectDir: string): { pages: Page[]; broken: { id: stri
 // Changes a page id and points every relation and [[link]] to the new id.
 // Returns the ids of the other pages that were updated.
 export function renamePage(projectDir: string, oldId: string, newId: string): string[] {
-	if (oldId === "portada") throw new Error("la portada no se puede renombrar");
+	if (!oldId.includes("/")) throw new Error(`"${oldId}" no se puede renombrar`);
 	if (!ID_PATTERN.test(newId)) throw new Error(`id inválido "${newId}": usa tipo/nombre-en-minusculas`);
 	if (newId.split("/")[0] !== oldId.split("/")[0]) throw new Error("renombrar no cambia el tipo de la página");
 	if (pageExists(projectDir, newId)) throw new Error(`ya existe la página "${newId}"`);

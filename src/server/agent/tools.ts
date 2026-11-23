@@ -1,6 +1,6 @@
 import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import { ID_PATTERN, loadAll, pageExists, readPage, renamePage, serializePage, writePage, bodyLinks, type Page } from "../wiki/store.ts";
+import { ID_PATTERN, loadAll, pageExists, readPage, renamePage, serializePage, typeOfId, writePage, bodyLinks, type Page } from "../wiki/store.ts";
 import { pageType, PAGE_TYPES } from "../wiki/schema.ts";
 import { verifyProject } from "../wiki/verify.ts";
 
@@ -56,11 +56,11 @@ export function wikiTools(projectDir: string, changed: Set<string>): ToolDefinit
 		name: "wiki_write",
 		label: "Escribir página",
 		description:
-			"Create or update a wiki page. The page type comes from the id prefix (personaje/ana-robles) or is 'portada'. " +
+			"Create or update a wiki page. The page type comes from the id prefix (personaje/ana-robles), or the id is a single page: portada, plan. " +
 			"On update, `fields` are merged key by key (a null value removes the key); `relations`, `body` and `notes` replace the old value when given. " +
 			"Any page you write becomes a draft (borrador); locked pages (bloqueada) cannot be written.",
 		parameters: Type.Object({
-			id: Type.String({ description: "portada, or <type>/<slug> with lowercase ascii and dashes" }),
+			id: Type.String({ description: "portada, plan, or <type>/<slug> with lowercase ascii and dashes" }),
 			title: Type.Optional(Type.String()),
 			fields: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
 			relations: Type.Optional(Type.Array(Type.Object({ type: Type.String(), target: Type.String(), note: Type.Optional(Type.String()) }))),
@@ -69,9 +69,11 @@ export function wikiTools(projectDir: string, changed: Set<string>): ToolDefinit
 			visibility: Type.Optional(Type.Union([Type.Literal("interna"), Type.Literal("spoiler"), Type.Literal("publica")])),
 		}),
 		async execute(_id, args) {
-			if (!ID_PATTERN.test(args.id)) throw new Error(`id inválido "${args.id}": usa portada o tipo/nombre-en-minusculas`);
-			const type = args.id === "portada" ? "portada" : args.id.split("/")[0];
-			if (!pageType(type)) throw new Error(`tipo desconocido "${type}". Tipos: ${PAGE_TYPES.map((t) => t.type).join(", ")}`);
+			if (!ID_PATTERN.test(args.id)) throw new Error(`id inválido "${args.id}": usa portada, plan o tipo/nombre-en-minusculas`);
+			const type = typeOfId(args.id);
+			const def = pageType(type);
+			if (!def || def.singleton !== !args.id.includes("/"))
+				throw new Error(`tipo desconocido "${type}". Tipos: ${PAGE_TYPES.filter((t) => !t.singleton).map((t) => t.type).join(", ")}; páginas únicas: portada, plan`);
 
 			const existing = pageExists(projectDir, args.id) ? readPage(projectDir, args.id) : undefined;
 			if (existing?.status === "bloqueada") throw new Error(`"${args.id}" está bloqueada por el autor; pídele que la desbloquee`);

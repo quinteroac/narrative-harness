@@ -1,7 +1,8 @@
 // Page types of the wiki. Each type has a structured card ("ficha") and free prose.
 // Fields are kept loose on purpose: required fields only produce warnings while a page is a draft.
 
-export type FieldKind = "text" | "number" | "list" | "boolean";
+// "fundamentos" is the plan's list of items: { titulo, paginas, cantidad?, nota? }
+export type FieldKind = "text" | "number" | "list" | "boolean" | "fundamentos";
 
 export interface FieldDef {
 	key: string;
@@ -47,6 +48,22 @@ export const PAGE_TYPES: PageTypeDef[] = [
 			{ key: "rutas", label: "Rutas previstas", kind: "text" },
 			{ key: "estilo_visual", label: "Estilo visual", kind: "text" },
 			{ key: "idioma", label: "Idioma del juego", kind: "text" },
+		],
+	},
+	{
+		type: "plan",
+		label: "Plan de fundamentos",
+		plural: "Plan",
+		singleton: true,
+		fields: [
+			{ key: "fase", label: "Fase", kind: "text", required: true },
+			{
+				key: "fundamentos",
+				label: "Fundamentos",
+				kind: "fundamentos",
+				required: true,
+				hint: "Lo imprescindible de este juego en la fase actual, en orden de prioridad",
+			},
 		],
 	},
 	{

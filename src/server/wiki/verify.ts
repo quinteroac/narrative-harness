@@ -1,4 +1,4 @@
-import { listPageFiles, loadAll, bodyLinks, ID_PATTERN, type Page } from "./store.ts";
+import { listPageFiles, loadAll, bodyLinks, ID_PATTERN, typeOfId, type Page } from "./store.ts";
 import { pageType, RELATION_TYPES, STATUSES, VISIBILITIES } from "./schema.ts";
 
 export interface Issue {
@@ -25,7 +25,7 @@ function checkPage(page: Page, file: string, ids: Set<string>, issues: Issue[]) 
 		add("error", `tipo de página desconocido "${page.type}"`);
 		return;
 	}
-	if (page.id !== "portada" && !page.id.startsWith(`${page.type}/`)) add("error", `el id debe empezar por "${page.type}/"`);
+	if (typeOfId(page.id) !== page.type) add("error", def.singleton ? `el id debe ser "${page.type}"` : `el id debe empezar por "${page.type}/"`);
 
 	const settled = page.status === "aprobada" || page.status === "bloqueada";
 	for (const field of def.fields) {
@@ -37,6 +37,16 @@ function checkPage(page: Page, file: string, ids: Set<string>, issues: Issue[]) 
 		if (field.kind === "number" && typeof value !== "number") add("error", `"${field.label}" debe ser un número`);
 		if (field.kind === "list" && !Array.isArray(value)) add("error", `"${field.label}" debe ser una lista`);
 		if (field.kind === "boolean" && typeof value !== "boolean") add("error", `"${field.label}" debe ser sí/no`);
+		if (field.kind === "fundamentos") {
+			if (!Array.isArray(value)) add("error", `"${field.label}" debe ser una lista`);
+			else
+				value.forEach((item, i) => {
+					if (!item || typeof item.titulo !== "string") add("error", `fundamento ${i + 1}: falta "titulo"`);
+					if (item?.paginas !== undefined && (!Array.isArray(item.paginas) || item.paginas.some((p: unknown) => typeof p !== "string" || !ID_PATTERN.test(p))))
+						add("error", `fundamento ${i + 1}: "paginas" debe ser una lista de ids`);
+					if (item?.cantidad !== undefined && typeof item.cantidad !== "number") add("error", `fundamento ${i + 1}: "cantidad" debe ser un número`);
+				});
+		}
 	}
 	for (const key of Object.keys(page.fields)) {
 		if (!def.fields.some((f) => f.key === key)) add("aviso", `campo no definido para ${def.label}: "${key}"`);

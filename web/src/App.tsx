@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, type PageSummary, type Project, type Schema } from "./api.ts";
 import { Chat } from "./Chat.tsx";
+import { NextStep } from "./NextStep.tsx";
 import { PageView } from "./PageView.tsx";
 import { VerifyView } from "./VerifyView.tsx";
 
@@ -60,7 +61,7 @@ export function App() {
 	}
 
 	async function newPage() {
-		const types = schema?.pageTypes.filter((t) => t.type !== "portada") ?? [];
+		const types = schema?.pageTypes.filter((t) => !t.singleton) ?? [];
 		const choice = prompt(`Tipo de página:\n${types.map((t, i) => `${i + 1}. ${t.label}`).join("\n")}`, "1");
 		const type = types[Number(choice) - 1];
 		if (!type) return;
@@ -115,6 +116,7 @@ export function App() {
 			) : (
 				<div className={`workspace show-${mobileTab}`}>
 					<aside className="sidebar">
+						<NextStep project={project} revision={revision} onWork={() => setMobileTab("chat")} />
 						<a className={`side-link ${route.view === "verificar" ? "active" : ""}`} href={`#/${project}/verificar`}>
 							Verificador
 						</a>
@@ -158,7 +160,11 @@ export function App() {
 							/>
 						)}
 					</main>
-					<Chat project={project} onPagesChanged={refresh} />
+					<Chat
+						project={project}
+						onPagesChanged={refresh}
+						top={<NextStep project={project} revision={revision} compact onWork={() => {}} />}
+					/>
 				</div>
 			)}
 		</div>

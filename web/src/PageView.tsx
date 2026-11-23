@@ -20,7 +20,30 @@ function renderProse(body: string, project: string, pages: PageSummary[]) {
 	return marked.parse(withLinks, { async: false });
 }
 
-function FieldValue({ value }: { value: unknown }) {
+function FieldValue({ value, project }: { value: unknown; project: string }) {
+	if (Array.isArray(value) && value.some((v) => v && typeof v === "object"))
+		return (
+			<ol className="fundamentos">
+				{value.map((item, i) => (
+					<li key={i}>
+						<strong>{item.titulo}</strong>
+						{item.cantidad ? <span className="muted"> ×{item.cantidad}</span> : null}
+						{item.paginas?.length ? (
+							<span>
+								{" — "}
+								{item.paginas.map((id: string, n: number) => (
+									<span key={id}>
+										{n > 0 && ", "}
+										<a href={pageHref(project, id)}>{id}</a>
+									</span>
+								))}
+							</span>
+						) : null}
+						{item.nota && <div className="muted small">{item.nota}</div>}
+					</li>
+				))}
+			</ol>
+		);
 	if (Array.isArray(value))
 		return (
 			<ul>
@@ -139,14 +162,14 @@ export function PageView(props: {
 								{f.label}
 								{f.required && <span className="req">*</span>}
 							</th>
-							<td>{page.fields[f.key] === undefined ? "—" : <FieldValue value={page.fields[f.key]} />}</td>
+							<td>{page.fields[f.key] === undefined ? "—" : <FieldValue value={page.fields[f.key]} project={project} />}</td>
 						</tr>
 					))}
 					{extraKeys.map((k) => (
 						<tr key={k} className="extra">
 							<th>{k}</th>
 							<td>
-								<FieldValue value={page.fields[k]} />
+								<FieldValue value={page.fields[k]} project={project} />
 							</td>
 						</tr>
 					))}

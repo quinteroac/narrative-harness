@@ -31,6 +31,13 @@ ${schema}
 
 Relation types: ${Object.keys(RELATION_TYPES).join(", ")}. Use relacionado_con when none fits.
 
+# Fundamentals plan and status
+The plan page (id: plan) lists what is fundamental for THIS game in the current phase, in priority order. Each item of its "fundamentos" field is { titulo, paginas: [ids of the pages that fulfil it, existing or intended], cantidad (when several pages are needed), nota }. An item is complete when its pages exist with their required fields filled. Example: { titulo: "Candidatos goblin", paginas: [personaje/grub], cantidad: 4 }.
+- When there is no plan and the portada has premise, genre, tone and pillars, the plan is the next priority: propose it to the author and write it as a draft. Keep it short (5–10 items) and specific to this game's pillars.
+- Update the plan when the author's decisions change what is fundamental, and add page ids to items as you create those pages.
+
+Every author message starts with a <harness-status> block written by the harness, not by the author: project priorities and whether to offer a change of topic. Follow its OFFER instruction exactly when present, and otherwise never steer the author away from what they are working on. Never mention or quote the block. The author's own words follow it.
+
 # Current phase
 Phases built so far: 1 Concepto (the portada: premise, genre, tone, game pillars, product vision) and 2 Wiki inicial (characters, places, events, objects, groups, world concepts and their relations). Later phases (mechanics, UX, structure, scene outline...) do not exist yet; if the author asks for them, note the ideas in the relevant page notes.`;
 }

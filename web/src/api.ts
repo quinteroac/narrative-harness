@@ -47,8 +47,23 @@ export interface FieldDef {
 }
 
 export interface Schema {
-	pageTypes: { type: string; label: string; plural: string; fields: FieldDef[] }[];
+	pageTypes: { type: string; label: string; plural: string; singleton?: boolean; fields: FieldDef[] }[];
 	relationTypes: Record<string, string>;
+}
+
+export interface ItemProgress {
+	titulo: string;
+	nota?: string;
+	cantidad: number;
+	pages: { id: string; title: string; state: "falta" | "incompleta" | "completa" | "aprobada"; missing: string[] }[];
+	state: "pendiente" | "en_progreso" | "completo" | "aprobado";
+}
+
+export interface Progress {
+	plan: { status: string; fase: string } | null;
+	items: ItemProgress[];
+	next: ItemProgress[];
+	questions: { page: string; title: string; text: string }[];
 }
 
 export interface ChatItem {
@@ -91,6 +106,7 @@ export const api = {
 	renamePage: (project: string, id: string, newId: string) => post<{ id: string }>(`${p(project)}/rename`, { id, newId }),
 	createPage: (project: string, type: string, title: string) => post<{ id: string }>(`${p(project)}/pages`, { type, title }),
 	savePage: (project: string, page: Page) => call<{ issues: Issue[] }>(`${p(project)}/page`, { method: "PUT", body: JSON.stringify(page) }),
+	progress: (project: string) => call<Progress>(`${p(project)}/progress`),
 	verify: (project: string) => call<Issue[]>(`${p(project)}/verify`),
 	chat: (project: string) => call<{ items: ChatItem[]; busy: boolean; model: string }>(`${p(project)}/chat`),
 	send: (project: string, message: string) => post(`${p(project)}/chat`, { message }),

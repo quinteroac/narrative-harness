@@ -9,6 +9,7 @@ import { config, ROOT } from "./config.ts";
 import { commit, commitManualEdits, createProject, history, listProjects, projectDir, slugify } from "./projects.ts";
 import { PAGE_TYPES, pageType, RELATION_TYPES, STATUSES, VISIBILITIES, type Status } from "./wiki/schema.ts";
 import { bodyLinks, loadAll, pageExists, readPage, renamePage, writePage, type Page } from "./wiki/store.ts";
+import { projectProgress } from "./wiki/progress.ts";
 import { isEmpty, verifyProject } from "./wiki/verify.ts";
 
 const agents = new Map<string, Promise<ProjectAgent>>();
@@ -123,6 +124,8 @@ app.put("/api/projects/:p/page", async (c) => {
 	commit(dir, `autor: edita ${existing.id}`);
 	return c.json({ issues: verifyProject(dir).filter((i) => i.page === existing.id) });
 });
+
+app.get("/api/projects/:p/progress", (c) => c.json(projectProgress(projectDir(c.req.param("p")))));
 
 app.get("/api/projects/:p/verify", (c) => c.json(verifyProject(projectDir(c.req.param("p")))));
 

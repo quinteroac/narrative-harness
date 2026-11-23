@@ -12,6 +12,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { config } from "../config.ts";
 import { commit, commitManualEdits } from "../projects.ts";
+import { Guide, stripStatus } from "./guide.ts";
 import { systemPrompt } from "./prompt.ts";
 import { wikiTools } from "./tools.ts";
 
@@ -61,6 +62,7 @@ const textOf = (content: unknown): string =>
 
 export class ProjectAgent {
 	private listeners = new Set<(e: ChatEvent) => void>();
+	private guide: Guide;
 	busy = false;
 
 	private constructor(
@@ -68,6 +70,7 @@ export class ProjectAgent {
 		private session: AgentSession,
 		private changed: Set<string>,
 	) {
+		this.guide = new Guide(dir);
 		session.subscribe((e) => this.onEvent(e));
 	}
 
@@ -124,9 +127,10 @@ export class ProjectAgent {
 	}
 
 	private finishRun() {
-		if (this.changed.size) {
-			const ids = [...this.changed];
-			this.changed.clear();
+		const ids = [...this.changed];
+		this.changed.clear();
+		this.guide.afterRun(ids);
+		if (ids.length) {
 			const summary = ids.length > 4 ? `${ids.slice(0, 4).join(", ")} y ${ids.length - 4} más` : ids.join(", ");
 			commit(this.dir, `agente: ${summary}`);
 		}
@@ -134,7 +138,10 @@ export class ProjectAgent {
 		this.emit({ kind: "settled" });
 	}
 
-	async send(message: string) {
+	async send(text: string) {
+		// Only the harness writes status blocks; drop any the author typed.
+		const message = stripStatus(text).trim();
+		if (!message) return;
 		if (this.busy) {
 			await this.session.followUp(message);
 			this.emit({ kind: "user", text: message });
@@ -144,7 +151,7 @@ export class ProjectAgent {
 		commitManualEdits(this.dir);
 		this.emit({ kind: "user", text: message });
 		try {
-			await this.session.prompt(message);
+			await this.session.prompt(`${this.guide.statusFor()}\n\n${message}`);
 		} catch (err) {
 			this.emit({ kind: "error", message: (err as Error).message });
 			this.finishRun();
@@ -158,7 +165,7 @@ export class ProjectAgent {
 	history(): ChatItem[] {
 		const items: ChatItem[] = [];
 		for (const m of this.session.messages as any[]) {
-			if (m.role === "user") items.push({ role: "user", text: textOf(m.content) });
+			if (m.role === "user") items.push({ role: "user", text: stripStatus(textOf(m.content)) });
 			else if (m.role === "assistant") {
 				for (const part of m.content) {
 					if (part.type === "text" && part.text.trim()) items.push({ role: "assistant", text: part.text });
