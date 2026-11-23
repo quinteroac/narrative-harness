@@ -192,11 +192,12 @@ button:disabled {
 }
 
 .page {
-	max-width: 1500px;
+	max-width: 1240px;
+	margin: 0 auto;
 }
 
 .editor {
-	max-width: 1000px;
+	max-width: 900px;
 }
 
 .page-columns {
