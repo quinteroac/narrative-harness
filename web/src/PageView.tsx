@@ -105,19 +105,6 @@ export function PageView(props: {
 	const open = questions.filter((q) => !q.answer);
 	const resolved = questions.filter((q) => q.answer);
 
-	async function answer(text: string) {
-		const reply = prompt(text);
-		if (!reply?.trim()) return;
-		try {
-			await api.savePage(project, { ...page, questions: questions.map((q) => (q.text === text ? { ...q, answer: reply.trim() } : q)) });
-			onChanged();
-			// The answer is a decision: the agent applies it to the card and prose.
-			api.send(project, `Respondí una pregunta de ${page.title} (${page.id}): "${text}" → ${reply.trim()}. Aplica la decisión en la wiki.`);
-		} catch (e) {
-			setError((e as Error).message);
-		}
-	}
-
 	async function rename() {
 		const [type, slug] = page.id.split("/");
 		const next = prompt(`Nuevo id (${type}/…). Se actualizan todos los enlaces.`, slug);
@@ -281,8 +268,8 @@ export function PageView(props: {
 								{open.map((q) => (
 									<li key={q.text}>
 										{q.text}{" "}
-										<button className="link" onClick={() => answer(q.text)}>
-											responder
+										<button className="link" onClick={() => api.send(project, `Resolvamos esta pregunta de ${page.title}: ${q.text}`)}>
+											hablarlo
 										</button>
 									</li>
 								))}
