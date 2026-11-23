@@ -76,10 +76,22 @@ export interface ItemProgress {
 	state: "pendiente" | "en_progreso" | "completo" | "aprobado";
 }
 
+export interface PhaseProgress {
+	id: string;
+	label: string;
+	description: string;
+	state: "hecha" | "actual" | "disponible" | "proximamente";
+}
+
 export interface Progress {
-	plan: { status: string; fase: string } | null;
+	plan: { status: string } | null;
+	phase: string;
+	phases: PhaseProgress[];
+	nextPhase: string | null;
+	ready: boolean;
 	items: ItemProgress[];
 	next: ItemProgress[];
+	unapproved: ItemProgress[];
 	questions: { page: string; title: string; text: string }[];
 }
 
@@ -123,6 +135,7 @@ export const api = {
 	renamePage: (project: string, id: string, newId: string) => post<{ id: string }>(`${p(project)}/rename`, { id, newId }),
 	createPage: (project: string, type: string, title: string) => post<{ id: string }>(`${p(project)}/pages`, { type, title }),
 	savePage: (project: string, page: Page) => call<{ issues: Issue[] }>(`${p(project)}/page`, { method: "PUT", body: JSON.stringify(page) }),
+	setPhase: (project: string, phase: string) => post(`${p(project)}/phase`, { phase }),
 	progress: (project: string) => call<Progress>(`${p(project)}/progress`),
 	registry: (project: string) => call<RegistryEntry[]>(`${p(project)}/registry`),
 	verify: (project: string) => call<Issue[]>(`${p(project)}/verify`),

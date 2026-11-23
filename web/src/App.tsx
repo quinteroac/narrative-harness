@@ -169,7 +169,7 @@ export function App() {
 						project={project}
 						pages={pages}
 						onPagesChanged={refresh}
-						top={<NextStep project={project} revision={revision} />}
+						top={<NextStep project={project} revision={revision} onChanged={refresh} />}
 					/>
 				</div>
 			)}

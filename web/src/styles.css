@@ -849,3 +849,53 @@ button.link {
 	font-size: 13px;
 	white-space: nowrap;
 }
+
+.phase-bar {
+	list-style: none;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	padding: 0;
+	margin: 0 0 6px;
+}
+
+.phase {
+	font-size: 12px;
+	padding: 2px 8px;
+	border-radius: 999px;
+}
+
+.phase.actual {
+	background: var(--accent);
+	border-color: var(--accent);
+	color: #fff;
+	opacity: 1;
+	cursor: default;
+}
+
+.phase.hecha {
+	color: var(--ok);
+	border-color: var(--ok);
+}
+
+.phase.proximamente {
+	opacity: 0.45;
+	border-style: dashed;
+}
+
+.phase-description {
+	margin: 0 0 6px;
+}
+
+.phase-ready {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 6px 0;
+	font-size: 14px;
+}
+
+.onboarding p {
+	margin: 0 0 8px;
+}

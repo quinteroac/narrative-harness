@@ -31,6 +31,30 @@ export type Status = (typeof STATUSES)[number];
 export const VISIBILITIES = ["interna", "spoiler", "publica"] as const;
 export type Visibility = (typeof VISIBILITIES)[number];
 
+// The design phases in order. Phases not built yet are shown so the author sees the whole road.
+export interface PhaseDef {
+	id: string;
+	label: string;
+	description: string;
+	built: boolean;
+}
+
+export const PHASES: PhaseDef[] = [
+	{ id: "concepto", label: "Concepto", built: true, description: "Premisa, género, tono, pilares de juego y visión de producto: la portada." },
+	{ id: "wiki", label: "Wiki inicial", built: true, description: "Personajes, lugares, sucesos, grupos y conceptos del mundo, con sus relaciones." },
+	{ id: "mecanicas", label: "Mecánicas", built: true, description: "Los sistemas del juego: decisiones, variables, qué se mide y qué se desbloquea." },
+	{ id: "ux", label: "UX", built: false, description: "Pantallas, funciones estándar, introducción a las mecánicas, accesibilidad." },
+	{ id: "estructura", label: "Estructura", built: false, description: "Rutas, decisiones, finales, arcos y curva emocional." },
+	{ id: "escaleta", label: "Escaleta", built: false, description: "Cada segmento convertido en escenas, y la lista de assets." },
+	{ id: "guion", label: "Guion", built: false, description: "Diálogo, narración y puesta en escena de cada escena." },
+	{ id: "visual", label: "Diseño visual", built: false, description: "El canon visual: hojas de personaje, lugares, guía de estilo y UI." },
+	{ id: "produccion", label: "Producción", built: false, description: "Sprites, fondos, CGs y UI finales." },
+	{ id: "audio", label: "Audio", built: false, description: "Música, efectos, ambientes y voces." },
+	{ id: "entrega", label: "Entrega", built: false, description: "El paquete para implementar el juego en cualquier motor." },
+];
+
+export const phase = (id: string) => PHASES.find((p) => p.id === id);
+
 export const MECHANIC_FAMILIES = [
 	"decisiones",
 	"relaciones",
@@ -79,13 +103,13 @@ export const PAGE_TYPES: PageTypeDef[] = [
 		plural: "Plan",
 		singleton: true,
 		fields: [
-			{ key: "fase", label: "Fase", kind: "text", required: true },
+			{ key: "fase", label: "Fase", kind: "choice", required: true, options: PHASES.filter((p) => p.built).map((p) => p.id) },
 			{
 				key: "fundamentos",
 				label: "Fundamentos",
 				kind: "fundamentos",
 				required: true,
-				hint: "Lo imprescindible de este juego en la fase actual, en orden de prioridad",
+				hint: "Lo imprescindible de este juego en cada fase, en orden de prioridad",
 			},
 		],
 	},

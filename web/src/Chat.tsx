@@ -237,7 +237,16 @@ export function Chat(props: { project: string; pages: PageSummary[]; onPagesChan
 			{chatOpen && (
 				<>
 					<div className="messages">
-						{items.length === 0 && <p className="muted">Cuéntale al agente la idea de tu juego.</p>}
+						{items.length === 0 && (
+							<div className="onboarding muted">
+								<p>Cuéntale al agente la idea de tu juego.</p>
+								<p>
+									El diseño avanza por <strong>fases</strong> (arriba, en "Siguiente paso"): concepto, wiki, mecánicas… Cada fase tiene sus
+									fundamentales; cuando los apruebas, el harness te propone pasar a la siguiente. Puedes explorar libremente: el agente solo
+									te sugiere de vez en cuando volver a lo prioritario.
+								</p>
+							</div>
+						)}
 						{items.map((m, i) =>
 							m.role === "tool" && m.name === "request_approval" && !m.isError && Array.isArray(JSON.parse(m.text).ids) ? (
 						<ApprovalCard key={i} project={project} ids={JSON.parse(m.text).ids} pages={pages} onChanged={onPagesChanged} />

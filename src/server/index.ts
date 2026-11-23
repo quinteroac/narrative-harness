@@ -10,7 +10,7 @@ import { commit, commitManualEdits, createProject, history, listProjects, projec
 import { PAGE_TYPES, pageType, RELATION_TYPES, STATUSES, VISIBILITIES, type Status } from "./wiki/schema.ts";
 import { bodyLinks, loadAll, pageExists, readPage, renamePage, writePage, type Page } from "./wiki/store.ts";
 import { checkMechanics } from "./wiki/mechanics.ts";
-import { projectProgress } from "./wiki/progress.ts";
+import { changePhase, projectProgress } from "./wiki/progress.ts";
 import { isEmpty, verifyProject } from "./wiki/verify.ts";
 
 const agents = new Map<string, Promise<ProjectAgent>>();
@@ -125,6 +125,15 @@ app.put("/api/projects/:p/page", async (c) => {
 	});
 	commit(dir, `autor: edita ${existing.id}`);
 	return c.json({ issues: verifyProject(dir).filter((i) => i.page === existing.id) });
+});
+
+app.post("/api/projects/:p/phase", async (c) => {
+	const dir = projectDir(c.req.param("p"));
+	const { phase } = await c.req.json<{ phase: string }>();
+	commitManualEdits(dir);
+	changePhase(dir, phase);
+	commit(dir, `autor: pasa a la fase ${phase}`);
+	return c.json({ ok: true });
 });
 
 app.get("/api/projects/:p/progress", (c) => c.json(projectProgress(projectDir(c.req.param("p")))));

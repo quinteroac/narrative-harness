@@ -1,10 +1,11 @@
 import { projectProgress, type ItemProgress, type Progress } from "../wiki/progress.ts";
+import { phase } from "../wiki/schema.ts";
 import { pageExists, readPage } from "../wiki/store.ts";
 
 // Keeps the author oriented without limiting them. Before each author message the harness tells
-// the agent the project's priorities, and only now and then asks it to offer a change of topic:
-// after FOCUS_TURNS runs on the same page or right after a fundamental is completed, and never
-// sooner than COOLDOWN_TURNS after the previous offer.
+// the agent the project's phase and priorities, and only now and then asks it to offer a change of
+// topic: after FOCUS_TURNS runs on the same page, right after a fundamental is completed, or once
+// when the phase becomes ready to leave; never sooner than COOLDOWN_TURNS after the previous offer.
 const FOCUS_TURNS = 3;
 const COOLDOWN_TURNS = 5;
 
@@ -27,16 +28,10 @@ export class Guide {
 	private lastOffer = -Infinity;
 	private focus = { page: "", runs: 0 };
 	private completed = "";
+	private readyOffered = "";
 	private before: Progress | undefined;
 
 	constructor(private dir: string) {}
-
-	// The topic to offer when there is no plan yet.
-	private bootstrap(): string {
-		const portada = pageExists(this.dir, "portada") ? readPage(this.dir, "portada") : undefined;
-		const basics = ["premisa", "genero", "tono", "pilares"].every((k) => portada?.fields[k]);
-		return basics ? "proponer el plan de fundamentos (página plan)" : "completar lo básico de la portada: premisa, género, tono y pilares";
-	}
 
 	statusFor(): string {
 		this.turn++;
@@ -44,25 +39,40 @@ export class Guide {
 		this.before = progress;
 
 		const lines: string[] = [];
-		if (!progress.plan) {
-			lines.push(`No fundamentals plan yet. Next priority: ${this.bootstrap()}.`);
-		} else {
-			lines.push(`Fundamentals plan (${progress.plan.status}), phase: ${progress.plan.fase || "?"}.`);
-			lines.push(progress.next.length ? "Pending, in priority order:" : "Every fundamental is complete.");
+		const label = (id: string | null) => (id ? (phase(id)?.label ?? id) : "");
+		lines.push(`Phase: ${label(progress.phase)} (${progress.phase}).${progress.plan ? ` Plan status: ${progress.plan.status}.` : " No plan page yet."}`);
+		if (progress.next.length) {
+			lines.push("Pending fundamentals of this phase, in priority order:");
 			progress.next.forEach((item, i) => lines.push(`${i + 1}. ${describe(item)}`));
+		} else if (progress.unapproved.length) {
+			lines.push(`Every fundamental of this phase is complete; waiting for the author's approval of: ${progress.unapproved.flatMap((i) => i.pages.map((p) => p.id)).join(", ")}.`);
+		} else if (progress.ready) {
+			lines.push(`This phase is ready: every fundamental is approved.${progress.nextPhase ? ` Next phase: ${label(progress.nextPhase)} (${progress.nextPhase}).` : ""}`);
+		} else if (progress.phase !== "concepto") {
+			lines.push("This phase has no fundamentals yet: propose them and write them in the plan with this phase.");
 		}
-		if (progress.questions.length) lines.push(`Open questions in page notes: ${progress.questions.length}.`);
+		if (progress.questions.length) lines.push(`Open questions: ${progress.questions.length}.`);
 		if (this.focus.runs >= 2) lines.push(`Recent focus: ${this.focus.page} for ${this.focus.runs} runs in a row.`);
 
-		const target = progress.plan ? progress.next[0]?.titulo : this.bootstrap();
+		// What to offer: the top pending fundamental, then approving the finished ones, then the next phase.
+		let target = progress.next[0]?.titulo;
+		let how = "ask_author";
+		if (!target && progress.unapproved.length) {
+			target = "aprobar los fundamentales de esta fase";
+			how = "request_approval with the pages waiting for approval";
+		} else if (!target && progress.ready && progress.nextPhase) {
+			target = `pasar a la fase ${label(progress.nextPhase)}`;
+		}
+		const phaseReady = progress.ready && !!progress.nextPhase && this.readyOffered !== progress.phase;
 		const focusIsTarget = progress.next[0]?.pages.some((p) => p.id === this.focus.page);
-		const due = this.turn - this.lastOffer >= COOLDOWN_TURNS && (this.focus.runs >= FOCUS_TURNS || this.completed);
+		const due = this.turn - this.lastOffer >= COOLDOWN_TURNS && (this.focus.runs >= FOCUS_TURNS || this.completed || phaseReady);
 		if (target && due && !focusIsTarget) {
 			this.lastOffer = this.turn;
+			if (phaseReady) this.readyOffered = progress.phase;
 			const focusTitle = pageExists(this.dir, this.focus.page) ? readPage(this.dir, this.focus.page).title : this.focus.page;
-			const current = this.completed ? `lo que acaba de completarse (${this.completed})` : focusTitle;
+			const current = this.completed ? `lo que acaba de completarse (${this.completed})` : focusTitle || "lo que está haciendo";
 			lines.push(
-				`OFFER: first answer the author fully. Then, as the last thing in your reply, offer a choice with ask_author: keep going with ${current}, or move to "${target}". Do not change topic on your own.`,
+				`OFFER: first answer the author fully. Then, as the last thing in your reply, offer a choice with ${how}: keep going with ${current}, or "${target}". Do not change topic or phase on your own.`,
 			);
 			this.completed = "";
 		} else {

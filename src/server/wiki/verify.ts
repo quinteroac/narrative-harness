@@ -1,6 +1,6 @@
 import { listPageFiles, loadAll, bodyLinks, ID_PATTERN, typeOfId, type Page } from "./store.ts";
 import { checkMechanics } from "./mechanics.ts";
-import { pageType, RELATION_TYPES, STATUSES, VISIBILITIES } from "./schema.ts";
+import { pageType, phase, RELATION_TYPES, STATUSES, VISIBILITIES } from "./schema.ts";
 
 export interface Issue {
 	level: "error" | "aviso";
@@ -49,6 +49,7 @@ function checkPage(page: Page, file: string, ids: Set<string>, issues: Issue[]) 
 					if (item?.paginas !== undefined && (!Array.isArray(item.paginas) || item.paginas.some((p: unknown) => typeof p !== "string" || !ID_PATTERN.test(p))))
 						add("error", `fundamento ${i + 1}: "paginas" debe ser una lista de ids`);
 					if (item?.cantidad !== undefined && typeof item.cantidad !== "number") add("error", `fundamento ${i + 1}: "cantidad" debe ser un número`);
+					if (item?.fase !== undefined && !phase(String(item.fase))) add("error", `fundamento ${i + 1}: fase desconocida "${item.fase}"`);
 				});
 		}
 	}

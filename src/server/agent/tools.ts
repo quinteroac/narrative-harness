@@ -1,7 +1,8 @@
 import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { ID_PATTERN, loadAll, pageExists, readPage, renamePage, serializePage, typeOfId, writePage, bodyLinks, type Page } from "../wiki/store.ts";
-import { pageType, PAGE_TYPES } from "../wiki/schema.ts";
+import { pageType, PAGE_TYPES, PHASES } from "../wiki/schema.ts";
+import { changePhase } from "../wiki/progress.ts";
 import { verifyProject } from "../wiki/verify.ts";
 
 const text = (t: string) => ({ content: [{ type: "text" as const, text: t }], details: {} });
@@ -174,5 +175,18 @@ export function wikiTools(projectDir: string, changed: Set<string>): ToolDefinit
 		},
 	});
 
-	return [list, read, search, write, rename, verify, ask, approval] as ToolDefinition[];
+	const setPhase = defineTool({
+		name: "set_phase",
+		label: "Cambiar de fase",
+		description: "Move the project to another design phase. Only when the author asked for it or accepted your offer. Creates the plan page if missing.",
+		parameters: Type.Object({ phase: Type.String({ description: `One of: ${PHASES.filter((p) => p.built).map((p) => p.id).join(", ")}` }) }),
+		async execute(_id, args) {
+			if (pageExists(projectDir, "plan") && readPage(projectDir, "plan").status === "bloqueada") throw new Error("el plan está bloqueado por el autor");
+			changePhase(projectDir, args.phase);
+			changed.add("plan");
+			return text(`Fase actual: ${args.phase}. Propón los fundamentales de esta fase y escríbelos en el plan con fase "${args.phase}".`);
+		},
+	});
+
+	return [list, read, search, write, rename, verify, ask, approval, setPhase] as ToolDefinition[];
 }
