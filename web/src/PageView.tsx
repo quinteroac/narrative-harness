@@ -154,64 +154,69 @@ export function PageView(props: {
 				</ul>
 			)}
 
-			<table className="card">
-				<tbody>
-					{def?.fields.map((f) => (
-						<tr key={f.key} className={page.fields[f.key] === undefined ? "unset" : ""}>
-							<th title={f.hint}>
-								{f.label}
-								{f.required && <span className="req">*</span>}
-							</th>
-							<td>{page.fields[f.key] === undefined ? "—" : <FieldValue value={page.fields[f.key]} project={project} />}</td>
-						</tr>
-					))}
-					{extraKeys.map((k) => (
-						<tr key={k} className="extra">
-							<th>{k}</th>
-							<td>
-								<FieldValue value={page.fields[k]} project={project} />
-							</td>
-						</tr>
-					))}
-				</tbody>
-			</table>
+			<div className="page-columns">
+				<div className="page-col">
+					<table className="card">
+						<tbody>
+							{def?.fields.map((f) => (
+								<tr key={f.key} className={page.fields[f.key] === undefined ? "unset" : ""}>
+									<th title={f.hint}>
+										{f.label}
+										{f.required && <span className="req">*</span>}
+									</th>
+									<td>{page.fields[f.key] === undefined ? "—" : <FieldValue value={page.fields[f.key]} project={project} />}</td>
+								</tr>
+							))}
+							{extraKeys.map((k) => (
+								<tr key={k} className="extra">
+									<th>{k}</th>
+									<td>
+										<FieldValue value={page.fields[k]} project={project} />
+									</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
 
-			{page.relations.length > 0 && (
-				<section>
-					<h2>Relaciones</h2>
-					<ul className="relations">
-						{page.relations.map((r, i) => (
-							<li key={i}>
-								<span className="rel">{schema?.relationTypes[r.type] ?? r.type}</span>{" "}
-								<a href={pageHref(project, r.target)}>{title(r.target)}</a>
-								{r.note && <span className="muted"> — {r.note}</span>}
-							</li>
-						))}
-					</ul>
-				</section>
-			)}
+					{page.relations.length > 0 && (
+						<section>
+							<h2>Relaciones</h2>
+							<ul className="relations">
+								{page.relations.map((r, i) => (
+									<li key={i}>
+										<span className="rel">{schema?.relationTypes[r.type] ?? r.type}</span>{" "}
+										<a href={pageHref(project, r.target)}>{title(r.target)}</a>
+										{r.note && <span className="muted"> — {r.note}</span>}
+									</li>
+								))}
+							</ul>
+						</section>
+					)}
 
-			{page.body && <section className="prose" dangerouslySetInnerHTML={{ __html: renderProse(page.body, project, pages) }} />}
+					{backlinks.length > 0 && (
+						<section>
+							<h2>Enlazada desde</h2>
+							<ul className="relations">
+								{backlinks.map((b) => (
+									<li key={b.id}>
+										<a href={pageHref(project, b.id)}>{b.title}</a>
+									</li>
+								))}
+							</ul>
+						</section>
+					)}
+				</div>
+				<div className="page-col">
+					{page.body && <section className="prose" dangerouslySetInnerHTML={{ __html: renderProse(page.body, project, pages) }} />}
 
-			{page.notes && (
-				<aside className="notes">
-					<h2>Notas del autor</h2>
-					<p>{page.notes}</p>
-				</aside>
-			)}
-
-			{backlinks.length > 0 && (
-				<section>
-					<h2>Enlazada desde</h2>
-					<ul className="relations">
-						{backlinks.map((b) => (
-							<li key={b.id}>
-								<a href={pageHref(project, b.id)}>{b.title}</a>
-							</li>
-						))}
-					</ul>
-				</section>
-			)}
+					{page.notes && (
+						<aside className="notes">
+							<h2>Notas del autor</h2>
+							<p>{page.notes}</p>
+						</aside>
+					)}
+				</div>
+			</div>
 
 			<details className="history">
 				<summary>Historial ({history.length})</summary>

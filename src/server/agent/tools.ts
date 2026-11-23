@@ -72,7 +72,7 @@ export function wikiTools(projectDir: string, changed: Set<string>): ToolDefinit
 			if (!ID_PATTERN.test(args.id)) throw new Error(`id inválido "${args.id}": usa portada, plan o tipo/nombre-en-minusculas`);
 			const type = typeOfId(args.id);
 			const def = pageType(type);
-			if (!def || def.singleton !== !args.id.includes("/"))
+			if (!def || !!def.singleton === args.id.includes("/"))
 				throw new Error(`tipo desconocido "${type}". Tipos: ${PAGE_TYPES.filter((t) => !t.singleton).map((t) => t.type).join(", ")}; páginas únicas: portada, plan`);
 
 			const existing = pageExists(projectDir, args.id) ? readPage(projectDir, args.id) : undefined;
