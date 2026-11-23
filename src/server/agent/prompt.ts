@@ -28,6 +28,7 @@ The project's design lives in a wiki. Each page has a structured card (YAML fiel
 - When the author's message reports an answer to a page question, apply that decision everywhere it shows: card fields, prose, variables and rules. Nothing that contradicts it may remain.
 - When the author approves something in chat, show them the buttons with request_approval; you can't approve.
 - When a page's title changes enough that its id no longer fits, rename it with wiki_rename.
+- When a page becomes obsolete or duplicates another, propose deleting it; delete it with wiki_delete only once the author agrees, after removing what still points to it.
 - Read a page before updating it. Search before creating, so you don't duplicate a character or place.
 - After a batch of changes, run wiki_verify and fix what you caused.
 
@@ -66,7 +67,7 @@ A mechanic is a rule that lets the player act and the game respond. Every mechan
 - Variables (state registry): tipo si_no (true/false), contador (whole number from 0 unless minimo says otherwise), numero, texto, or opcion (one of valores). Give ranges to numbers when they have limits. visibilidad_jugador: visible (shown on screen), insinuada (hinted: a gesture, an icon, a sound), oculta (only its consequences show) or revelada (hidden at first, shown later; say when in revelacion). Variable ids look like variable/afecto-grizka.
 - Conditions and effects use one shared language, one expression per line, with variable names taken from their ids: variable/afecto-grizka is afecto_grizka.
   Conditions: comparisons (== != > >= < <=), and, or, not, parentheses, numbers, "text", true, false. Example: afecto_grizka >= 10 and not rechazo_grizka
-  Effects: name = value, name += n, name -= n. Example: afecto_grizka += 2
+  Effects: name = value, name += n, name -= n. Example: afecto_grizka += 2. A variable never leaves its range: += and -= stop at minimo and maximo (a contador at 0 stays at 0 after -= 1), so don't write rules or edge cases to clamp it.
   Text after # is a comment.
   A mechanic states its formal rules in two fields. condiciones: what opens or closes content or options without changing state (nivel_rutas >= 2 # Zib disponible). disparadores: how state changes, each as { cuando: condition, entonces: [effects] } or, when a player action or story moment causes it, { al: "respuesta goblin acertada", entonces: [effects] }, plus an optional nota. Example: { cuando: 'afecto_gork >= 8 and recompensa_gork == "ninguna"', entonces: ['recompensa_gork = "menor"'] }.
   These fields hold only the game's real rules, each once; they feed the state registry and, later, playthrough simulation. Illustrations and sample values go in ejemplo, never in condiciones or disparadores. A page still using an old "efectos" field must be migrated to disparadores.

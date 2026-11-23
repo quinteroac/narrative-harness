@@ -24,6 +24,8 @@ export interface PageTypeDef {
 	plural: string;
 	fields: FieldDef[];
 	singleton?: boolean;
+	// The phase whose work this type of page is, unless the plan lists the page under another one.
+	phase?: string;
 }
 
 export const STATUSES = ["borrador", "aprobada", "bloqueada", "desactualizada"] as const;
@@ -77,6 +79,7 @@ export const PLAYER_VISIBILITY = ["visible", "insinuada", "oculta", "revelada"];
 export const PAGE_TYPES: PageTypeDef[] = [
 	{
 		type: "portada",
+		phase: "concepto",
 		label: "Portada",
 		plural: "Portada",
 		singleton: true,
@@ -116,6 +119,7 @@ export const PAGE_TYPES: PageTypeDef[] = [
 	},
 	{
 		type: "personaje",
+		phase: "wiki",
 		label: "Personaje",
 		plural: "Personajes",
 		fields: [
@@ -133,6 +137,7 @@ export const PAGE_TYPES: PageTypeDef[] = [
 	},
 	{
 		type: "mecanica",
+		phase: "mecanicas",
 		label: "Mecánica",
 		plural: "Mecánicas",
 		fields: [
@@ -153,14 +158,15 @@ export const PAGE_TYPES: PageTypeDef[] = [
 	},
 	{
 		type: "variable",
+		phase: "mecanicas",
 		label: "Variable",
 		plural: "Variables",
 		fields: [
 			{ key: "descripcion", label: "Descripción", kind: "text", required: true },
 			{ key: "tipo", label: "Tipo", kind: "choice", required: true, options: VARIABLE_TYPES },
 			{ key: "valores", label: "Valores posibles", kind: "list", hint: "Solo para tipo opcion" },
-			{ key: "minimo", label: "Mínimo", kind: "number" },
-			{ key: "maximo", label: "Máximo", kind: "number" },
+			{ key: "minimo", label: "Mínimo", kind: "number", hint: "los efectos nunca la bajan de aquí" },
+			{ key: "maximo", label: "Máximo", kind: "number", hint: "los efectos nunca la suben de aquí" },
 			{ key: "inicial", label: "Valor inicial", kind: "value", required: true, hint: "true/false, un número o un texto" },
 			{ key: "visibilidad_jugador", label: "Para el jugador", kind: "choice", required: true, options: PLAYER_VISIBILITY },
 			{ key: "revelacion", label: "Cuándo se revela", kind: "text", hint: "Solo si es revelada" },
@@ -168,6 +174,7 @@ export const PAGE_TYPES: PageTypeDef[] = [
 	},
 	{
 		type: "lugar",
+		phase: "wiki",
 		label: "Lugar",
 		plural: "Lugares",
 		fields: [
@@ -178,6 +185,7 @@ export const PAGE_TYPES: PageTypeDef[] = [
 	},
 	{
 		type: "suceso",
+		phase: "wiki",
 		label: "Suceso",
 		plural: "Sucesos",
 		fields: [
@@ -188,18 +196,21 @@ export const PAGE_TYPES: PageTypeDef[] = [
 	},
 	{
 		type: "objeto",
+		phase: "wiki",
 		label: "Objeto",
 		plural: "Objetos",
 		fields: [{ key: "descripcion", label: "Descripción", kind: "text", required: true }],
 	},
 	{
 		type: "grupo",
+		phase: "wiki",
 		label: "Grupo",
 		plural: "Grupos",
 		fields: [{ key: "descripcion", label: "Descripción", kind: "text", required: true }],
 	},
 	{
 		type: "concepto",
+		phase: "wiki",
 		label: "Concepto del mundo",
 		plural: "Conceptos del mundo",
 		fields: [{ key: "descripcion", label: "Descripción", kind: "text", required: true }],

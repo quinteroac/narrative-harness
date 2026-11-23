@@ -120,7 +120,7 @@ export class ProjectAgent {
 			this.emit({ kind: "tool_start", id: e.toolCallId, name: e.toolName, args: e.args });
 		} else if (e.type === "tool_execution_end") {
 			this.emit({ kind: "tool_end", id: e.toolCallId, name: e.toolName, isError: e.isError, result: textOf(e.result?.content) });
-			if (e.toolName === "wiki_write" && !e.isError) this.emit({ kind: "pages_changed" });
+			if (["wiki_write", "wiki_rename", "wiki_delete"].includes(e.toolName) && !e.isError) this.emit({ kind: "pages_changed" });
 		} else if (e.type === "agent_settled") {
 			this.finishRun();
 		}

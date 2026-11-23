@@ -92,7 +92,7 @@ export interface Progress {
 	items: ItemProgress[];
 	next: ItemProgress[];
 	unapproved: ItemProgress[];
-	questions: { page: string; title: string; text: string }[];
+	questions: { page: string; title: string; text: string; current: boolean }[];
 }
 
 export interface ChatItem {
@@ -144,6 +144,7 @@ export const api = {
 		return true;
 	},
 	renamePage: (project: string, id: string, newId: string) => post<{ id: string }>(`${p(project)}/rename`, { id, newId }),
+	deletePage: (project: string, id: string) => post(`${p(project)}/delete`, { id }),
 	createPage: (project: string, type: string, title: string) => post<{ id: string }>(`${p(project)}/pages`, { type, title }),
 	savePage: (project: string, page: Page) => call<{ issues: Issue[] }>(`${p(project)}/page`, { method: "PUT", body: JSON.stringify(page) }),
 	setPhase: (project: string, phase: string) => post(`${p(project)}/phase`, { phase }),

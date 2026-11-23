@@ -130,6 +130,11 @@ export function renamePage(projectDir: string, oldId: string, newId: string): st
 	return touched;
 }
 
+export function deletePage(projectDir: string, id: string): void {
+	if (!id.includes("/")) throw new Error(`"${id}" no se puede borrar`);
+	rmSync(pagePath(projectDir, id));
+}
+
 export function bodyLinks(body: string): string[] {
 	return [...body.matchAll(LINK_PATTERN)].map((m) => m[1].trim());
 }

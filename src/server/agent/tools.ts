@@ -1,9 +1,9 @@
 import { defineTool, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import { ID_PATTERN, loadAll, pageExists, readPage, renamePage, serializePage, typeOfId, writePage, bodyLinks, type Page } from "../wiki/store.ts";
+import { ID_PATTERN, deletePage, loadAll, pageExists, readPage, renamePage, serializePage, typeOfId, writePage, bodyLinks, type Page } from "../wiki/store.ts";
 import { pageType, PAGE_TYPES, PHASES } from "../wiki/schema.ts";
 import { changePhase } from "../wiki/progress.ts";
-import { verifyProject } from "../wiki/verify.ts";
+import { pageUsers, verifyProject } from "../wiki/verify.ts";
 
 const text = (t: string) => ({ content: [{ type: "text" as const, text: t }], details: {} });
 
@@ -127,6 +127,24 @@ export function wikiTools(projectDir: string, changed: Set<string>): ToolDefinit
 		},
 	});
 
+	const remove = defineTool({
+		name: "wiki_delete",
+		label: "Borrar página",
+		description:
+			"Delete an obsolete or duplicate page, only when the author asked for it or accepted your proposal. " +
+			"It fails while other pages still use it (relations, [[links]], plan items, expressions): update those first. Locked pages cannot be deleted. The project history keeps the old content.",
+		parameters: Type.Object({ id: Type.String() }),
+		async execute(_id, { id }) {
+			if (!pageExists(projectDir, id)) throw new Error(`no existe la página "${id}"`);
+			if (readPage(projectDir, id).status === "bloqueada") throw new Error(`"${id}" está bloqueada por el autor`);
+			const users = pageUsers(projectDir, id);
+			if (users.length) throw new Error(`"${id}" sigue en uso en: ${users.join(", ")}`);
+			deletePage(projectDir, id);
+			changed.add(id);
+			return text(`Borrada ${id}.`);
+		},
+	});
+
 	const verify = defineTool({
 		name: "wiki_verify",
 		label: "Verificar wiki",
@@ -188,5 +206,5 @@ export function wikiTools(projectDir: string, changed: Set<string>): ToolDefinit
 		},
 	});
 
-	return [list, read, search, write, rename, verify, ask, approval, setPhase] as ToolDefinition[];
+	return [list, read, search, write, rename, remove, verify, ask, approval, setPhase] as ToolDefinition[];
 }

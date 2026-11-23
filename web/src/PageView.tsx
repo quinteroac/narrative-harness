@@ -131,6 +131,17 @@ export function PageView(props: {
 		}
 	}
 
+	async function remove() {
+		if (!confirm(`¿Borrar "${page.title}"? Queda en el historial del proyecto.`)) return;
+		try {
+			await api.deletePage(project, page.id);
+			onChanged();
+			location.hash = `#/${project}`;
+		} catch (e) {
+			setError((e as Error).message);
+		}
+	}
+
 	async function setStatus(status: string) {
 		try {
 			await api.setStatus(project, page.id, status);
@@ -156,6 +167,7 @@ export function PageView(props: {
 						<button onClick={() => setStatus("aprobada")}>Desbloquear</button>
 					)}
 					{page.status !== "borrador" && <button onClick={() => setStatus("borrador")}>Volver a borrador</button>}
+					{page.id.includes("/") && <button onClick={remove}>Borrar</button>}
 				</span>
 			</div>
 			<h1>{page.title}</h1>

@@ -69,6 +69,21 @@ export function NextStep({ project, revision, onChanged }: { project: string; re
 		onChanged();
 	}
 
+	const here = progress.questions.filter((q) => q.current);
+	const earlier = progress.questions.filter((q) => !q.current);
+	const questionList = (questions: Progress["questions"]) => (
+		<ul>
+			{questions.map((q, i) => (
+				<li key={i}>
+					<a href={pageHref(project, q.page)}>{q.title}</a>: {q.text}{" "}
+					<button className="link" onClick={() => work(`Resolvamos esta pregunta de ${q.title}: ${q.text}`)}>
+						hablarlo
+					</button>
+				</li>
+			))}
+		</ul>
+	);
+
 	const total = progress.items.length;
 	const approved = progress.items.filter((i) => i.state === "aprobado").length;
 	const complete = approved + progress.unapproved.length;
@@ -127,19 +142,19 @@ export function NextStep({ project, revision, onChanged }: { project: string; re
 					<button onClick={() => work(`Trabajemos en "${item.titulo}".`)}>Trabajar en esto</button>
 				</div>
 			))}
-			{progress.questions.length > 0 && (
+			{here.length > 0 && (
 				<details className="questions">
-					<summary>Preguntas abiertas ({progress.questions.length})</summary>
-					<ul>
-						{progress.questions.map((q, i) => (
-							<li key={i}>
-								<a href={pageHref(project, q.page)}>{q.title}</a>: {q.text}{" "}
-								<button className="link" onClick={() => work(`Resolvamos esta pregunta de ${q.title}: ${q.text}`)}>
-									hablarlo
-								</button>
-							</li>
-						))}
-					</ul>
+					<summary>Preguntas abiertas ({here.length})</summary>
+					{questionList(here)}
+				</details>
+			)}
+			{earlier.length > 0 && (
+				<details className="questions">
+					<summary>De otras fases ({earlier.length})</summary>
+					<button className="link" onClick={() => work("Repasa las preguntas abiertas de páginas de otras fases: marca como respondidas, con la decisión, las que ya se decidieron y dime cuáles siguen pendientes.")}>
+						pedir al agente que las repase
+					</button>
+					{questionList(earlier)}
 				</details>
 			)}
 		</div>

@@ -32,7 +32,7 @@ export interface Progress {
 	items: ItemProgress[];
 	next: ItemProgress[];
 	unapproved: ItemProgress[];
-	questions: { page: string; title: string; text: string }[];
+	questions: { page: string; title: string; text: string; current: boolean }[];
 }
 
 interface PlanItem {
@@ -65,8 +65,13 @@ function itemProgress(item: PlanItem, byId: Map<string, Page>): ItemProgress {
 	return { titulo: item.titulo, nota: item.nota, cantidad, pages, state };
 }
 
-function openQuestions(pages: Page[]) {
-	return pages.flatMap((p) => (p.questions ?? []).filter((q) => !q.answer).map((q) => ({ page: p.id, title: p.title, text: q.text })));
+// A page belongs to the phase of the first plan item that lists it, else to its type's phase; the plan to the current phase.
+function openQuestions(pages: Page[], items: PlanItem[], current: string) {
+	const phaseOf = new Map<string, string>();
+	for (const item of items) for (const id of item.paginas ?? []) if (!phaseOf.has(id)) phaseOf.set(id, item.fase ?? current);
+	return pages.flatMap((p) =>
+		(p.questions ?? []).filter((q) => !q.answer).map((q) => ({ page: p.id, title: p.title, text: q.text, current: (phaseOf.get(p.id) ?? pageType(p.type)?.phase ?? current) === current })),
+	);
 }
 
 export function projectProgress(projectDir: string): Progress {
@@ -74,7 +79,8 @@ export function projectProgress(projectDir: string): Progress {
 	const byId = new Map(pages.map((p) => [p.id, p]));
 	const plan = byId.get("plan");
 	const current = plan ? String(plan.fields.fase ?? "concepto") : "concepto";
-	const planned = Array.isArray(plan?.fields.fundamentos) ? (plan.fields.fundamentos as PlanItem[]).filter((i) => i?.titulo && (i.fase ?? current) === current) : [];
+	const allItems = Array.isArray(plan?.fields.fundamentos) ? (plan.fields.fundamentos as PlanItem[]).filter((i) => i?.titulo) : [];
+	const planned = allItems.filter((i) => (i.fase ?? current) === current);
 	const items = (planned.length || current !== "concepto" ? planned : [CONCEPT_ITEM]).map((i) => itemProgress(i, byId));
 
 	const index = PHASES.findIndex((p) => p.id === current);
@@ -93,7 +99,7 @@ export function projectProgress(projectDir: string): Progress {
 		items,
 		next: items.filter((i) => i.state === "pendiente" || i.state === "en_progreso").slice(0, 3),
 		unapproved: items.filter((i) => i.state === "completo"),
-		questions: openQuestions(pages),
+		questions: openQuestions(pages, allItems, current),
 	};
 }
 

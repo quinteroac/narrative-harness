@@ -51,7 +51,8 @@ export class Guide {
 		} else if (progress.phase !== "concepto") {
 			lines.push("This phase has no fundamentals yet: propose them and write them in the plan with this phase.");
 		}
-		if (progress.questions.length) lines.push(`Open questions: ${progress.questions.length}.`);
+		const here = progress.questions.filter((q) => q.current).length;
+		if (progress.questions.length) lines.push(`Open questions: ${here} in this phase, ${progress.questions.length - here} on pages of other phases.`);
 		if (this.focus.runs >= 2) lines.push(`Recent focus: ${this.focus.page} for ${this.focus.runs} runs in a row.`);
 
 		// What to offer: the top pending fundamental, then approving the finished ones, then the next phase.

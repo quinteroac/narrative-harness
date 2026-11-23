@@ -8,10 +8,10 @@ import { ProjectAgent } from "./agent/session.ts";
 import { config, ROOT } from "./config.ts";
 import { commit, commitManualEdits, createProject, history, listProjects, projectDir, slugify } from "./projects.ts";
 import { PAGE_TYPES, pageType, RELATION_TYPES, STATUSES, VISIBILITIES, type Status } from "./wiki/schema.ts";
-import { bodyLinks, loadAll, pageExists, readPage, renamePage, writePage, type Page } from "./wiki/store.ts";
+import { bodyLinks, deletePage, loadAll, pageExists, readPage, renamePage, writePage, type Page } from "./wiki/store.ts";
 import { checkMechanics } from "./wiki/mechanics.ts";
 import { changePhase, projectProgress } from "./wiki/progress.ts";
-import { isEmpty, verifyProject } from "./wiki/verify.ts";
+import { isEmpty, pageUsers, verifyProject } from "./wiki/verify.ts";
 
 const agents = new Map<string, Promise<ProjectAgent>>();
 
@@ -103,6 +103,17 @@ app.post("/api/projects/:p/rename", async (c) => {
 	renamePage(dir, id, newId);
 	commit(dir, `autor: renombra ${id} → ${newId}`);
 	return c.json({ id: newId });
+});
+
+app.post("/api/projects/:p/delete", async (c) => {
+	const dir = projectDir(c.req.param("p"));
+	const { id } = await c.req.json<{ id: string }>();
+	const users = pageUsers(dir, id);
+	if (users.length) throw new Error(`no se puede borrar: sigue en uso en ${users.join(", ")}`);
+	commitManualEdits(dir);
+	deletePage(dir, id);
+	commit(dir, `autor: borra ${id}`);
+	return c.json({ ok: true });
 });
 
 // Author edits keep the page status: an approved page the author changes stays approved.

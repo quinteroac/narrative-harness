@@ -81,3 +81,16 @@ export function verifyProject(projectDir: string): Issue[] {
 	if (!ids.has("portada")) issues.push({ level: "error", page: "portada", message: "el proyecto no tiene portada" });
 	return issues;
 }
+
+// Pages that still point to `id`: relations, [[links]], plan items and, for a variable, the mechanics that use it.
+export function pageUsers(projectDir: string, id: string): string[] {
+	const { pages } = loadAll(projectDir);
+	const users = new Set<string>();
+	for (const p of pages) {
+		const planned = p.id === "plan" && Array.isArray(p.fields.fundamentos) && p.fields.fundamentos.some((i: { paginas?: unknown }) => Array.isArray(i?.paginas) && i.paginas.includes(id));
+		if (p.id !== id && (planned || p.relations.some((r) => r.target === id) || bodyLinks(p.body).includes(id))) users.add(p.id);
+	}
+	const entry = checkMechanics(pages).registry.find((e) => e.id === id);
+	for (const user of [...(entry?.writers ?? []), ...(entry?.readers ?? [])]) users.add(user);
+	return [...users];
+}
