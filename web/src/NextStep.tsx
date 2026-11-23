@@ -32,15 +32,18 @@ export function NextStep({ project, revision }: { project: string; revision: num
 	}
 
 	const total = progress.items.length;
-	const complete = progress.items.filter((i) => i.state === "completo" || i.state === "aprobado").length;
+	const approved = progress.items.filter((i) => i.state === "aprobado").length;
+	const complete = approved + progress.items.filter((i) => i.state === "completo").length;
+	const pct = (n: number) => `${total ? (n / total) * 100 : 0}%`;
 
 	return (
 		<div className="next-step">
-			<div className="progress" title={`${complete} de ${total} fundamentos completos`}>
-				<div style={{ width: `${total ? (complete / total) * 100 : 0}%` }} />
+			<div className="progress" title={`${complete} completos, ${approved} aprobados de ${total}`}>
+				<div className="complete" style={{ width: pct(complete) }} />
+				<div className="approved" style={{ width: pct(approved) }} />
 			</div>
 			<p className="muted small">
-				{complete}/{total} fundamentos{progress.plan.fase && ` · ${progress.plan.fase}`}
+				{complete}/{total} completos · {approved}/{total} aprobados{progress.plan.fase && ` · ${progress.plan.fase}`}
 				{progress.plan.status === "borrador" && " · plan sin aprobar"} · <a href={pageHref(project, "plan")}>ver plan</a>
 			</p>
 			{progress.next.map((item) => (
@@ -60,7 +63,10 @@ export function NextStep({ project, revision }: { project: string; revision: num
 					<ul>
 						{progress.questions.map((q, i) => (
 							<li key={i}>
-								<a href={pageHref(project, q.page)}>{q.title}</a>: {q.text}
+								<a href={pageHref(project, q.page)}>{q.title}</a>: {q.text}{" "}
+								<button className="link" onClick={() => work(`Resolvamos esta pregunta de ${q.title}: ${q.text}`)}>
+									hablarlo
+								</button>
 							</li>
 						))}
 					</ul>

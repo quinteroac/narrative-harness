@@ -22,6 +22,7 @@ export interface Page extends PageSummary {
 	fields: Record<string, unknown>;
 	relations: Relation[];
 	notes?: string;
+	questions?: { text: string; answer?: string }[];
 	body: string;
 }
 
@@ -44,6 +45,7 @@ export interface FieldDef {
 	kind: string;
 	required?: boolean;
 	hint?: string;
+	spoiler?: boolean;
 }
 
 export interface Schema {

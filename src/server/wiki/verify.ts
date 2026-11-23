@@ -52,6 +52,9 @@ function checkPage(page: Page, file: string, ids: Set<string>, issues: Issue[]) 
 		if (!def.fields.some((f) => f.key === key)) add("aviso", `campo no definido para ${def.label}: "${key}"`);
 	}
 
+	if (page.questions !== undefined && (!Array.isArray(page.questions) || page.questions.some((q) => !q || typeof q.text !== "string")))
+		add("error", `"questions" debe ser una lista de { text, answer }`);
+
 	for (const rel of page.relations) {
 		if (!RELATION_TYPES[rel.type]) add("aviso", `tipo de relación no catalogado "${rel.type}"`);
 		if (!ids.has(rel.target)) add("error", `relación hacia una página que no existe: "${rel.target}"`);

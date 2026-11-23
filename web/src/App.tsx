@@ -161,6 +161,7 @@ export function App() {
 					</main>
 					<Chat
 						project={project}
+						pages={pages}
 						onPagesChanged={refresh}
 						top={<NextStep project={project} revision={revision} />}
 					/>

@@ -48,14 +48,8 @@ function itemProgress(item: PlanItem, byId: Map<string, Page>): ItemProgress {
 	return { titulo: item.titulo, nota: item.nota, cantidad, pages, state };
 }
 
-// Open questions are the ¿...? sentences and lines ending in "?" that pages keep in their notes.
 function openQuestions(pages: Page[]) {
-	return pages.flatMap((p) => {
-		const notes = p.notes ?? "";
-		const found = new Set([...notes.matchAll(/¿[^?¿]+\?/g)].map((m) => m[0].trim()));
-		for (const line of notes.split("\n")) if (!line.includes("¿") && line.trim().endsWith("?")) found.add(line.trim());
-		return [...found].map((text) => ({ page: p.id, title: p.title, text }));
-	});
+	return pages.flatMap((p) => (p.questions ?? []).filter((q) => !q.answer).map((q) => ({ page: p.id, title: p.title, text: q.text })));
 }
 
 export function projectProgress(projectDir: string): Progress {

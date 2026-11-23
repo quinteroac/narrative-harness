@@ -119,6 +119,7 @@ app.put("/api/projects/:p/page", async (c) => {
 		fields: edited.fields ?? {},
 		relations: (edited.relations ?? []).filter((r) => r.type && r.target),
 		notes: edited.notes?.trim() || undefined,
+		questions: edited.questions?.filter((q) => q.text?.trim()),
 		body: edited.body ?? "",
 	});
 	commit(dir, `autor: edita ${existing.id}`);

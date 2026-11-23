@@ -101,6 +101,21 @@ export function PageView(props: {
 	const extraKeys = Object.keys(page.fields).filter((k) => !def?.fields.some((f) => f.key === k));
 	const title = (id: string) => pages.find((p) => p.id === id)?.title ?? id;
 
+	const questions = page.questions ?? [];
+	const open = questions.filter((q) => !q.answer);
+	const resolved = questions.filter((q) => q.answer);
+
+	async function answer(text: string) {
+		const reply = prompt(text);
+		if (!reply?.trim()) return;
+		try {
+			await api.savePage(project, { ...page, questions: questions.map((q) => (q.text === text ? { ...q, answer: reply.trim() } : q)) });
+			onChanged();
+		} catch (e) {
+			setError((e as Error).message);
+		}
+	}
+
 	async function rename() {
 		const [type, slug] = page.id.split("/");
 		const next = prompt(`Nuevo id (${type}/…). Se actualizan todos los enlaces.`, slug);
@@ -163,6 +178,7 @@ export function PageView(props: {
 									<th title={f.hint}>
 										{f.label}
 										{f.required && <span className="req">*</span>}
+										{f.spoiler && <span className="spoiler-tag" title="Revela la historia aunque la página sea pública">spoiler</span>}
 									</th>
 									<td>{page.fields[f.key] === undefined ? "—" : <FieldValue value={page.fields[f.key]} project={project} />}</td>
 								</tr>
@@ -209,6 +225,22 @@ export function PageView(props: {
 				<div className="page-col">
 					{page.body && <section className="prose" dangerouslySetInnerHTML={{ __html: renderProse(page.body, project, pages) }} />}
 
+					{open.length > 0 && (
+						<section className="page-questions">
+							<h2>Preguntas abiertas</h2>
+							<ul>
+								{open.map((q) => (
+									<li key={q.text}>
+										{q.text}{" "}
+										<button className="link" onClick={() => answer(q.text)}>
+											responder
+										</button>
+									</li>
+								))}
+							</ul>
+						</section>
+					)}
+
 					{page.notes && (
 						<aside className="notes">
 							<h2>Notas del autor</h2>
@@ -217,6 +249,19 @@ export function PageView(props: {
 					)}
 				</div>
 			</div>
+
+			{resolved.length > 0 && (
+				<details className="history">
+					<summary>Preguntas resueltas ({resolved.length})</summary>
+					<ul>
+						{resolved.map((q) => (
+							<li key={q.text}>
+								{q.text} → {q.answer}
+							</li>
+						))}
+					</ul>
+				</details>
+			)}
 
 			<details className="history">
 				<summary>Historial ({history.length})</summary>

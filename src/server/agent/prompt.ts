@@ -1,7 +1,7 @@
 import { PAGE_TYPES, RELATION_TYPES } from "../wiki/schema.ts";
 
 const schema = PAGE_TYPES.map((t) => {
-	const fields = t.fields.map((f) => `${f.key}${f.required ? "*" : ""} (${f.kind}${f.hint ? `: ${f.hint}` : ""})`).join(", ");
+	const fields = t.fields.map((f) => `${f.key}${f.required ? "*" : ""} (${f.kind}${f.spoiler ? ", spoiler" : ""}${f.hint ? `: ${f.hint}` : ""})`).join(", ");
 	return `- ${t.type}${t.singleton ? " (single page, id: portada)" : ""}: ${fields}`;
 }).join("\n");
 
@@ -22,7 +22,10 @@ The project's design lives in a wiki. Each page has a structured card (YAML fiel
 - Link pages in prose with [[id]] or [[id|label]]. Use typed relations in the card for links that matter to the game.
 - Visibility: interna (team only), spoiler (readers, reveals story), publica (anyone).
 - Status: pages you write are drafts (borrador). Only the author approves (aprobada) or locks (bloqueada) pages. Never try to change that.
-- Notes are for intentions, doubts and open questions; they are never shown to readers.
+- Notes are for intentions, doubts and proposals; they are never shown to readers.
+- Open questions for the author go in the page's questions list, one per item, never in notes or prose. Don't repeat a question already listed on another page. When the author answers one, set its answer and apply the decision to the card and prose, so nothing stale remains.
+- Fields marked spoiler (arco, secretos) reveal story even on a public page.
+- When the author approves something in chat, show them the buttons with request_approval; you can't approve.
 - When a page's title changes enough that its id no longer fits, rename it with wiki_rename.
 - Read a page before updating it. Search before creating, so you don't duplicate a character or place.
 - After a batch of changes, run wiki_verify and fix what you caused.

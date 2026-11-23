@@ -10,6 +10,8 @@ export interface FieldDef {
 	kind: FieldKind;
 	required?: boolean;
 	hint?: string;
+	// Reveals story: treated as a spoiler even when the page is public.
+	spoiler?: boolean;
 }
 
 export interface PageTypeDef {
@@ -79,8 +81,8 @@ export const PAGE_TYPES: PageTypeDef[] = [
 			{ key: "voz", label: "Forma de hablar", kind: "text" },
 			{ key: "aspecto", label: "Aspecto", kind: "text", required: true },
 			{ key: "vestuario", label: "Vestuario", kind: "list" },
-			{ key: "arco", label: "Arco", kind: "text" },
-			{ key: "secretos", label: "Secretos", kind: "text" },
+			{ key: "arco", label: "Arco", kind: "text", spoiler: true },
+			{ key: "secretos", label: "Secretos", kind: "text", spoiler: true },
 		],
 	},
 	{

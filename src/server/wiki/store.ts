@@ -9,6 +9,12 @@ export interface Relation {
 	note?: string;
 }
 
+// An open question has no answer yet.
+export interface Question {
+	text: string;
+	answer?: string;
+}
+
 export interface Page {
 	id: string;
 	type: string;
@@ -18,6 +24,7 @@ export interface Page {
 	fields: Record<string, unknown>;
 	relations: Relation[];
 	notes?: string;
+	questions?: Question[];
 	body: string;
 }
 
@@ -33,6 +40,7 @@ const pagePath = (projectDir: string, id: string) => join(wikiDir(projectDir), `
 export function serializePage(page: Page): string {
 	const { body, ...card } = page;
 	if (!card.notes) delete card.notes;
+	if (!card.questions?.length) delete card.questions;
 	return `---\n${stringify(card).trimEnd()}\n---\n\n${body.trim()}\n`;
 }
 
@@ -49,6 +57,7 @@ export function parsePage(text: string): Page {
 		fields: card.fields ?? {},
 		relations: card.relations ?? [],
 		notes: card.notes,
+		questions: card.questions,
 		body: match[2].trim(),
 	};
 }

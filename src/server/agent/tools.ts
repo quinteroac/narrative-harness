@@ -65,7 +65,12 @@ export function wikiTools(projectDir: string, changed: Set<string>): ToolDefinit
 			fields: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
 			relations: Type.Optional(Type.Array(Type.Object({ type: Type.String(), target: Type.String(), note: Type.Optional(Type.String()) }))),
 			body: Type.Optional(Type.String({ description: "Markdown prose. Link pages with [[id]] or [[id|label]]." })),
-			notes: Type.Optional(Type.String({ description: "Author notes: intentions, doubts, open questions. Never shown to readers." })),
+			notes: Type.Optional(Type.String({ description: "Author notes: intentions, doubts, proposals. Never shown to readers." })),
+			questions: Type.Optional(
+				Type.Array(Type.Object({ text: Type.String(), answer: Type.Optional(Type.String()) }), {
+					description: "Open questions about this page for the author; set answer when one is resolved. Replaces the list.",
+				}),
+			),
 			visibility: Type.Optional(Type.Union([Type.Literal("interna"), Type.Literal("spoiler"), Type.Literal("publica")])),
 		}),
 		async execute(_id, args) {
@@ -93,6 +98,7 @@ export function wikiTools(projectDir: string, changed: Set<string>): ToolDefinit
 				fields,
 				relations: args.relations ?? existing?.relations ?? [],
 				notes: args.notes ?? existing?.notes,
+				questions: args.questions ?? existing?.questions,
 				body: args.body ?? existing?.body ?? "",
 			};
 			writePage(projectDir, page);
@@ -154,5 +160,19 @@ export function wikiTools(projectDir: string, changed: Set<string>): ToolDefinit
 		},
 	});
 
-	return [list, read, search, write, rename, verify, ask] as ToolDefinition[];
+	// The web shows approve buttons; approving stays the author's click.
+	const approval = defineTool({
+		name: "request_approval",
+		label: "Pedir aprobación",
+		description:
+			"Show the author approve buttons for pages that are ready, for example when they say they approve something in chat. You cannot approve pages yourself.",
+		parameters: Type.Object({ ids: Type.Array(Type.String(), { minItems: 1 }) }),
+		async execute(_id, { ids }) {
+			const missing = ids.filter((id) => !pageExists(projectDir, id));
+			if (missing.length) throw new Error(`no existen: ${missing.join(", ")}`);
+			return text("Botones de aprobación mostrados al autor.");
+		},
+	});
+
+	return [list, read, search, write, rename, verify, ask, approval] as ToolDefinition[];
 }

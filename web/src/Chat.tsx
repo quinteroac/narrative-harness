@@ -1,6 +1,7 @@
 import { marked } from "marked";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { api, type ChatEvent, type ChatItem } from "./api.ts";
+import { api, type ChatEvent, type ChatItem, type PageSummary } from "./api.ts";
+import { pageHref } from "./App.tsx";
 
 const TOOL_LABEL: Record<string, string> = {
 	wiki_list: "Lista páginas",
@@ -9,7 +10,54 @@ const TOOL_LABEL: Record<string, string> = {
 	wiki_write: "Escribe",
 	wiki_rename: "Renombra",
 	wiki_verify: "Verifica la wiki",
+	request_approval: "Pide aprobación",
 };
+
+// Approving is the author's own action, made here with a click.
+function ApprovalCard(props: { project: string; ids: string[]; pages: PageSummary[]; onChanged: () => void }) {
+	const { project, ids, pages, onChanged } = props;
+	const [errors, setErrors] = useState<Record<string, string>>({});
+	const page = (id: string) => pages.find((p) => p.id === id);
+	const settled = (id: string) => ["aprobada", "bloqueada"].includes(page(id)?.status ?? "");
+	const pending = ids.filter((id) => page(id) && !settled(id));
+
+	async function approve(list: string[]) {
+		const next: Record<string, string> = {};
+		for (const id of list) {
+			try {
+				await api.setStatus(project, id, "aprobada");
+			} catch (e) {
+				next[id] = (e as Error).message;
+			}
+		}
+		setErrors(next);
+		onChanged();
+	}
+
+	return (
+		<div className="question approval">
+			<div className="question-text">Aprobar</div>
+			{ids.map((id) => (
+				<div key={id} className="approval-row">
+					<a href={pageHref(project, id)}>{page(id)?.title ?? id}</a>
+					{settled(id) ? (
+						<span className="badge aprobada">{page(id)?.status}</span>
+					) : page(id) ? (
+						<button onClick={() => approve([id])}>Aprobar</button>
+					) : (
+						<span className="muted">no existe</span>
+					)}
+					{errors[id] && <div className="approval-error">{errors[id]}</div>}
+				</div>
+			))}
+			{pending.length > 1 && (
+				<button className="primary" onClick={() => approve(pending)}>
+					Aprobar todas ({pending.length})
+				</button>
+			)}
+		</div>
+	);
+}
 
 interface Question {
 	question: string;
@@ -74,7 +122,8 @@ function useStoredFlag(key: string): [boolean, (v: boolean) => void] {
 	return [value, set];
 }
 
-export function Chat({ project, onPagesChanged, top }: { project: string; onPagesChanged: () => void; top?: ReactNode }) {
+export function Chat(props: { project: string; pages: PageSummary[]; onPagesChanged: () => void; top?: ReactNode }) {
+	const { project, pages, onPagesChanged, top } = props;
 	const [items, setItems] = useState<ChatItem[]>([]);
 	const [busy, setBusy] = useState(false);
 	const [model, setModel] = useState("");
@@ -190,7 +239,9 @@ export function Chat({ project, onPagesChanged, top }: { project: string; onPage
 					<div className="messages">
 						{items.length === 0 && <p className="muted">Cuéntale al agente la idea de tu juego.</p>}
 						{items.map((m, i) =>
-							m.role === "tool" && m.name === "ask_author" && !m.isError && parseQuestion(m.text) ? (
+							m.role === "tool" && m.name === "request_approval" && !m.isError && Array.isArray(JSON.parse(m.text).ids) ? (
+						<ApprovalCard key={i} project={project} ids={JSON.parse(m.text).ids} pages={pages} onChanged={onPagesChanged} />
+					) : m.role === "tool" && m.name === "ask_author" && !m.isError && parseQuestion(m.text) ? (
 								<QuestionCard
 									key={i}
 									q={parseQuestion(m.text)!}
