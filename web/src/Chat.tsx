@@ -56,6 +56,24 @@ function toolSummary(name: string | undefined, args: string) {
 	return `${TOOL_LABEL[name ?? ""] ?? name} ${detail}`.trim();
 }
 
+// Whether a section is expanded, remembered per browser.
+function useStoredFlag(key: string): [boolean, (v: boolean) => void] {
+	const [value, setValue] = useState(() => {
+		try {
+			return localStorage.getItem(key) !== "0";
+		} catch {
+			return true;
+		}
+	});
+	const set = (v: boolean) => {
+		setValue(v);
+		try {
+			localStorage.setItem(key, v ? "1" : "0");
+		} catch {}
+	};
+	return [value, set];
+}
+
 export function Chat({ project, onPagesChanged, top }: { project: string; onPagesChanged: () => void; top?: ReactNode }) {
 	const [items, setItems] = useState<ChatItem[]>([]);
 	const [busy, setBusy] = useState(false);
@@ -63,6 +81,8 @@ export function Chat({ project, onPagesChanged, top }: { project: string; onPage
 	const [draft, setDraft] = useState("");
 	const [error, setError] = useState("");
 	const [picks, setPicks] = useState<Record<number, string[]>>({});
+	const [planOpen, setPlanOpen] = useStoredFlag("plan-open");
+	const [chatOpen, setChatOpen] = useStoredFlag("chat-open");
 	const bottom = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -152,68 +172,79 @@ export function Chat({ project, onPagesChanged, top }: { project: string; onPage
 	}
 
 	return (
-		<section className="chat">
-			<div className="chat-head">
+		<section className={`chat ${chatOpen ? "" : "chat-collapsed"}`}>
+			<div className={`pane plan-pane ${planOpen ? "open" : ""}`}>
+				<button className="pane-head" onClick={() => setPlanOpen(!planOpen)} aria-expanded={planOpen}>
+					<span className="chevron">{planOpen ? "▾" : "▸"}</span>
+					<span>Siguiente paso</span>
+				</button>
+				{planOpen && <div className="pane-body">{top}</div>}
+			</div>
+			<button className="pane-head chat-head" onClick={() => setChatOpen(!chatOpen)} aria-expanded={chatOpen}>
+				<span className="chevron">{chatOpen ? "▾" : "▸"}</span>
 				<span>Agente</span>
-				<span className="muted">{model}</span>
-			</div>
-			{top}
-			<div className="messages">
-				{items.length === 0 && <p className="muted">Cuéntale al agente la idea de tu juego.</p>}
-				{items.map((m, i) =>
-					m.role === "tool" && m.name === "ask_author" && !m.isError && parseQuestion(m.text) ? (
-						<QuestionCard
-							key={i}
-							q={parseQuestion(m.text)!}
-							open={open.includes(i)}
-							answer={answerAfter(i)}
-							selected={picks[i] ?? []}
-							onPick={(label) => pick(i, label)}
+				<span className="muted model">{model}</span>
+			</button>
+			{chatOpen && (
+				<>
+					<div className="messages">
+						{items.length === 0 && <p className="muted">Cuéntale al agente la idea de tu juego.</p>}
+						{items.map((m, i) =>
+							m.role === "tool" && m.name === "ask_author" && !m.isError && parseQuestion(m.text) ? (
+								<QuestionCard
+									key={i}
+									q={parseQuestion(m.text)!}
+									open={open.includes(i)}
+									answer={answerAfter(i)}
+									selected={picks[i] ?? []}
+									onPick={(label) => pick(i, label)}
+								/>
+							) : m.role === "tool" ? (
+								<div key={i} className={`tool ${m.isError ? "error" : ""}`} title={m.text}>
+									{m.isError ? `Error en ${TOOL_LABEL[m.name ?? ""] ?? m.name}: ${m.text}` : toolSummary(m.name, m.text)}
+								</div>
+							) : m.role === "user" ? (
+								<div key={i} className="msg user">
+									{m.text}
+								</div>
+							) : (
+								<div
+									key={i}
+									className={`msg assistant ${m.isError ? "error" : ""}`}
+									dangerouslySetInnerHTML={{ __html: marked.parse(m.text, { async: false }) }}
+								/>
+							),
+						)}
+						{Object.values(picks).some((p) => p.length) && (
+							<button className="primary send-picks" onClick={sendPicks}>
+								Enviar respuestas
+							</button>
+						)}
+						{busy && <div className="working">El agente está trabajando…</div>}
+						{error && <div className="banner error">{error}</div>}
+						<div ref={bottom} />
+					</div>
+					<div className="composer">
+						<textarea
+							value={draft}
+							placeholder={busy ? "Se enviará cuando el agente termine" : "Escribe al agente (Enter envía, Shift+Enter salto de línea)"}
+							onChange={(e) => setDraft(e.target.value)}
+							onKeyDown={(e) => {
+								if (e.key === "Enter" && !e.shiftKey) {
+									e.preventDefault();
+									send();
+								}
+							}}
 						/>
-					) : m.role === "tool" ? (
-						<div key={i} className={`tool ${m.isError ? "error" : ""}`} title={m.text}>
-							{m.isError ? `Error en ${TOOL_LABEL[m.name ?? ""] ?? m.name}: ${m.text}` : toolSummary(m.name, m.text)}
+						<div className="composer-actions">
+							{busy && <button onClick={() => api.abort(project)}>Detener</button>}
+							<button className="primary" onClick={send} disabled={!draft.trim()}>
+								Enviar
+							</button>
 						</div>
-					) : m.role === "user" ? (
-						<div key={i} className="msg user">
-							{m.text}
-						</div>
-					) : (
-						<div
-							key={i}
-							className={`msg assistant ${m.isError ? "error" : ""}`}
-							dangerouslySetInnerHTML={{ __html: marked.parse(m.text, { async: false }) }}
-						/>
-					),
-				)}
-				{Object.values(picks).some((p) => p.length) && (
-					<button className="primary send-picks" onClick={sendPicks}>
-						Enviar respuestas
-					</button>
-				)}
-				{busy && <div className="working">El agente está trabajando…</div>}
-				{error && <div className="banner error">{error}</div>}
-				<div ref={bottom} />
-			</div>
-			<div className="composer">
-				<textarea
-					value={draft}
-					placeholder={busy ? "Se enviará cuando el agente termine" : "Escribe al agente (Enter envía, Shift+Enter salto de línea)"}
-					onChange={(e) => setDraft(e.target.value)}
-					onKeyDown={(e) => {
-						if (e.key === "Enter" && !e.shiftKey) {
-							e.preventDefault();
-							send();
-						}
-					}}
-				/>
-				<div className="composer-actions">
-					{busy && <button onClick={() => api.abort(project)}>Detener</button>}
-					<button className="primary" onClick={send} disabled={!draft.trim()}>
-						Enviar
-					</button>
-				</div>
-			</div>
+					</div>
+				</>
+			)}
 		</section>
 	);
 }

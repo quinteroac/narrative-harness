@@ -24,11 +24,10 @@ export function NextStep({ project, revision }: { project: string; revision: num
 
 	if (!progress.plan) {
 		return (
-			<section className="next-step">
-				<h3>Siguiente paso</h3>
+			<div className="next-step">
 				<p className="muted small">Aún no hay plan de fundamentos.</p>
 				<button onClick={() => work("Propón el plan de fundamentos del proyecto.")}>Pedir el plan al agente</button>
-			</section>
+			</div>
 		);
 	}
 
@@ -36,16 +35,13 @@ export function NextStep({ project, revision }: { project: string; revision: num
 	const complete = progress.items.filter((i) => i.state === "completo" || i.state === "aprobado").length;
 
 	return (
-		<section className="next-step">
-			<h3>
-				Siguiente paso <a href={pageHref(project, "plan")}>ver plan</a>
-			</h3>
+		<div className="next-step">
 			<div className="progress" title={`${complete} de ${total} fundamentos completos`}>
 				<div style={{ width: `${total ? (complete / total) * 100 : 0}%` }} />
 			</div>
 			<p className="muted small">
 				{complete}/{total} fundamentos{progress.plan.fase && ` · ${progress.plan.fase}`}
-				{progress.plan.status === "borrador" && " · plan sin aprobar"}
+				{progress.plan.status === "borrador" && " · plan sin aprobar"} · <a href={pageHref(project, "plan")}>ver plan</a>
 			</p>
 			{progress.next.map((item) => (
 				<div key={item.titulo} className="next-item">
@@ -70,6 +66,6 @@ export function NextStep({ project, revision }: { project: string; revision: num
 					</ul>
 				</details>
 			)}
-		</section>
+		</div>
 	);
 }
