@@ -131,5 +131,28 @@ export function wikiTools(projectDir: string, changed: Set<string>): ToolDefinit
 		},
 	});
 
-	return [list, read, search, write, rename, verify] as ToolDefinition[];
+	// The web shows the question as clickable options; the author's choice arrives as their next message.
+	const ask = defineTool({
+		name: "ask_author",
+		label: "Preguntar al autor",
+		description:
+			"Ask the author a question with clickable options. Use it whenever you offer a choice or need a decision, instead of listing options in prose. " +
+			"One question per call; you may call it several times in one reply. After asking, end your reply and wait: the answer arrives as the author's next message. The author can always answer in their own words instead.",
+		parameters: Type.Object({
+			question: Type.String(),
+			options: Type.Array(
+				Type.Object({
+					label: Type.String({ description: "Short answer the author can click, written as their reply" }),
+					detail: Type.Optional(Type.String({ description: "One line on what this option implies" })),
+				}),
+				{ minItems: 2, maxItems: 6 },
+			),
+			multiple: Type.Optional(Type.Boolean({ description: "True when several options can be chosen together" })),
+		}),
+		async execute() {
+			return text("Pregunta mostrada al autor. Termina tu respuesta y espera su elección.");
+		},
+	});
+
+	return [list, read, search, write, rename, verify, ask] as ToolDefinition[];
 }

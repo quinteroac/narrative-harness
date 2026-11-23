@@ -62,7 +62,7 @@ export class Guide {
 			const focusTitle = pageExists(this.dir, this.focus.page) ? readPage(this.dir, this.focus.page).title : this.focus.page;
 			const current = this.completed ? `lo que acaba de completarse (${this.completed})` : focusTitle;
 			lines.push(
-				`OFFER: first answer the author fully. Then end your reply with one short line offering a choice: keep going with ${current}, or move to "${target}". Do not change topic on your own.`,
+				`OFFER: first answer the author fully. Then, as the last thing in your reply, offer a choice with ask_author: keep going with ${current}, or move to "${target}". Do not change topic on your own.`,
 			);
 			this.completed = "";
 		} else {

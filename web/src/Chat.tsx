@@ -11,6 +11,42 @@ const TOOL_LABEL: Record<string, string> = {
 	wiki_verify: "Verifica la wiki",
 };
 
+interface Question {
+	question: string;
+	options: { label: string; detail?: string }[];
+	multiple?: boolean;
+}
+
+function parseQuestion(args: string): Question | undefined {
+	try {
+		const q = JSON.parse(args);
+		return Array.isArray(q.options) ? q : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+function QuestionCard(props: { q: Question; open: boolean; answer?: string; selected: string[]; onPick: (label: string) => void }) {
+	const { q, open, answer, selected, onPick } = props;
+	return (
+		<div className={`question ${open ? "" : "answered"}`}>
+			<div className="question-text">{q.question}</div>
+			<div className="options">
+				{q.options.map((o) => {
+					const chosen = open ? selected.includes(o.label) : !!answer?.includes(o.label);
+					return (
+						<button key={o.label} className={`option ${chosen ? "chosen" : ""}`} disabled={!open} onClick={() => onPick(o.label)}>
+							<span>{o.label}</span>
+							{o.detail && <small>{o.detail}</small>}
+						</button>
+					);
+				})}
+			</div>
+			{open && q.multiple && <div className="muted small">Puedes elegir varias.</div>}
+		</div>
+	);
+}
+
 function toolSummary(name: string | undefined, args: string) {
 	let detail = "";
 	try {
@@ -26,6 +62,7 @@ export function Chat({ project, onPagesChanged, top }: { project: string; onPage
 	const [model, setModel] = useState("");
 	const [draft, setDraft] = useState("");
 	const [error, setError] = useState("");
+	const [picks, setPicks] = useState<Record<number, string[]>>({});
 	const bottom = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -75,16 +112,43 @@ export function Chat({ project, onPagesChanged, top }: { project: string; onPage
 
 	useEffect(() => bottom.current?.scrollIntoView({ block: "end" }), [items]);
 
-	async function send() {
-		const text = draft.trim();
-		if (!text) return;
-		setDraft("");
+	async function sendText(text: string) {
 		setError("");
+		setPicks({});
 		try {
 			await api.send(project, text);
 		} catch (e) {
 			setError((e as Error).message);
 		}
+	}
+
+	function send() {
+		const text = draft.trim();
+		if (!text) return;
+		setDraft("");
+		sendText(text);
+	}
+
+	// Questions asked since the author's last message are still open.
+	const lastUser = items.map((m) => m.role).lastIndexOf("user");
+	const open = items.flatMap((m, i) => (i > lastUser && m.role === "tool" && m.name === "ask_author" && parseQuestion(m.text) ? [i] : []));
+	const answerAfter = (i: number) => items.slice(i + 1).find((m) => m.role === "user")?.text;
+
+	// A single one-choice question answers on click; otherwise choices are collected and sent together.
+	function pick(i: number, label: string) {
+		const q = parseQuestion(items[i].text)!;
+		if (open.length === 1 && !q.multiple) return sendText(label);
+		setPicks((p) => {
+			const current = p[i] ?? [];
+			const next = q.multiple ? (current.includes(label) ? current.filter((l) => l !== label) : [...current, label]) : [label];
+			return { ...p, [i]: next };
+		});
+	}
+
+	function sendPicks() {
+		const answered = open.filter((i) => picks[i]?.length);
+		const text = answered.map((i) => (open.length === 1 ? picks[i].join(", ") : `${parseQuestion(items[i].text)!.question} → ${picks[i].join(", ")}`)).join("\n");
+		if (text) sendText(text);
 	}
 
 	return (
@@ -97,7 +161,16 @@ export function Chat({ project, onPagesChanged, top }: { project: string; onPage
 			<div className="messages">
 				{items.length === 0 && <p className="muted">Cuéntale al agente la idea de tu juego.</p>}
 				{items.map((m, i) =>
-					m.role === "tool" ? (
+					m.role === "tool" && m.name === "ask_author" && !m.isError && parseQuestion(m.text) ? (
+						<QuestionCard
+							key={i}
+							q={parseQuestion(m.text)!}
+							open={open.includes(i)}
+							answer={answerAfter(i)}
+							selected={picks[i] ?? []}
+							onPick={(label) => pick(i, label)}
+						/>
+					) : m.role === "tool" ? (
 						<div key={i} className={`tool ${m.isError ? "error" : ""}`} title={m.text}>
 							{m.isError ? `Error en ${TOOL_LABEL[m.name ?? ""] ?? m.name}: ${m.text}` : toolSummary(m.name, m.text)}
 						</div>
@@ -112,6 +185,11 @@ export function Chat({ project, onPagesChanged, top }: { project: string; onPage
 							dangerouslySetInnerHTML={{ __html: marked.parse(m.text, { async: false }) }}
 						/>
 					),
+				)}
+				{Object.values(picks).some((p) => p.length) && (
+					<button className="primary send-picks" onClick={sendPicks}>
+						Enviar respuestas
+					</button>
 				)}
 				{busy && <div className="working">El agente está trabajando…</div>}
 				{error && <div className="banner error">{error}</div>}
