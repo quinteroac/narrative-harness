@@ -6,7 +6,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { ProjectAgent } from "./agent/session.ts";
 import { config, ROOT } from "./config.ts";
-import { commit, commitManualEdits, createProject, history, listProjects, projectDir, slugify } from "./projects.ts";
+import { commit, commitManualEdits, createProject, history, listProjects, participation, projectDir, setParticipation, slugify, type Participation } from "./projects.ts";
 import { PAGE_TYPES, pageType, RELATION_TYPES, STATUSES, VISIBILITIES, type Status } from "./wiki/schema.ts";
 import { bodyLinks, deletePage, loadAll, pageExists, readPage, renamePage, writePage, type Page } from "./wiki/store.ts";
 import { checkMechanics } from "./wiki/mechanics.ts";
@@ -154,6 +154,17 @@ app.get("/api/projects/:p/progress", (c) => c.json(projectProgress(projectDir(c.
 app.get("/api/projects/:p/registry", (c) => c.json(checkMechanics(loadAll(projectDir(c.req.param("p"))).pages).registry));
 
 app.get("/api/projects/:p/verify", (c) => c.json(verifyProject(projectDir(c.req.param("p")))));
+
+app.get("/api/projects/:p/participation", (c) => c.json({ level: participation(projectDir(c.req.param("p"))) }));
+
+app.post("/api/projects/:p/participation", async (c) => {
+	const dir = projectDir(c.req.param("p"));
+	const { level } = await c.req.json<{ level: Participation }>();
+	commitManualEdits(dir);
+	setParticipation(dir, level);
+	commit(dir, `autor: participación del agente ${level}`);
+	return c.json({ level });
+});
 
 app.get("/api/projects/:p/chat", async (c) => {
 	const agent = await agentFor(c.req.param("p"));

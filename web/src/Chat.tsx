@@ -122,11 +122,18 @@ function useStoredFlag(key: string): [boolean, (v: boolean) => void] {
 	return [value, set];
 }
 
+const PARTICIPATION_LEVELS = [
+	{ id: "guardian", label: "Guardián", detail: "Solo cuida el proceso y la coherencia; no aporta contenido" },
+	{ id: "colaborador", label: "Colaborador", detail: "Propone cuando se lo pides o cuando algo bloquea" },
+	{ id: "coautor", label: "Coautor", detail: "Propone alternativas y desarrolla ideas" },
+];
+
 export function Chat(props: { project: string; pages: PageSummary[]; onPagesChanged: () => void; top?: ReactNode }) {
 	const { project, pages, onPagesChanged, top } = props;
 	const [items, setItems] = useState<ChatItem[]>([]);
 	const [busy, setBusy] = useState(false);
 	const [model, setModel] = useState("");
+	const [level, setLevel] = useState("");
 	const [draft, setDraft] = useState("");
 	const [error, setError] = useState("");
 	const [picks, setPicks] = useState<Record<number, string[]>>({});
@@ -137,6 +144,7 @@ export function Chat(props: { project: string; pages: PageSummary[]; onPagesChan
 	useEffect(() => {
 		setItems([]);
 		setError("");
+		api.participation(project).then((r) => setLevel(r.level));
 		api.chat(project)
 			.then((r) => {
 				setItems(r.items);
@@ -229,11 +237,25 @@ export function Chat(props: { project: string; pages: PageSummary[]; onPagesChan
 				</button>
 				{planOpen && <div className="pane-body">{top}</div>}
 			</div>
-			<button className="pane-head chat-head" onClick={() => setChatOpen(!chatOpen)} aria-expanded={chatOpen}>
-				<span className="chevron">{chatOpen ? "▾" : "▸"}</span>
-				<span>Agente</span>
-				<span className="muted model">{model}</span>
-			</button>
+			<div className="chat-head">
+				<button className="pane-head" onClick={() => setChatOpen(!chatOpen)} aria-expanded={chatOpen}>
+					<span className="chevron">{chatOpen ? "▾" : "▸"}</span>
+					<span>Agente</span>
+					<span className="muted model">{model}</span>
+				</button>
+				<select
+					className="participation"
+					value={level}
+					title={PARTICIPATION_LEVELS.find((l) => l.id === level)?.detail}
+					onChange={(e) => api.setParticipation(project, e.target.value).then((r) => setLevel(r.level), (err) => setError(err.message))}
+				>
+					{PARTICIPATION_LEVELS.map((l) => (
+						<option key={l.id} value={l.id} title={l.detail}>
+							{l.label}
+						</option>
+					))}
+				</select>
+			</div>
 			{chatOpen && (
 				<>
 					<div className="messages">

@@ -1,6 +1,17 @@
 import { projectProgress, type ItemProgress, type Progress } from "../wiki/progress.ts";
 import { phase } from "../wiki/schema.ts";
 import { pageExists, readPage } from "../wiki/store.ts";
+import { participation, type Participation } from "../projects.ts";
+
+const PARTICIPATION_RULES: Record<Participation, string> = {
+	guardian:
+		"guardian. The author writes the game; you contribute no content. Put what the author says into the wiki faithfully (card, prose, links, variables, rules in the formal language), keep the plan and phases, verify, and point out contradictions, gaps and broken rules. " +
+		"Do not invent names, traits, events, places, mechanics or values, and offer no alternatives. A gap becomes an open question in the page's questions list, without suggested answers. In chat, ask only what blocks the next fundamental, as an open question; use ask_author only for yes/no or to choose among options the author gave. Saying which fundamentals a phase needs is process, so you still do that.",
+	colaborador:
+		"colaborador. Turn what the author decides into the wiki and keep the process and coherence. Propose only when the author asks or when a gap blocks progress, and then one proposal at a time. Don't fill in details on your own: leave them as open questions on the page.",
+	coautor:
+		"coautor. Propose concrete content, and when a choice really shapes the game give two or three alternatives with their trade-offs. Ask before inventing large things; small supporting details are fine, marked in the page notes as your proposals.",
+};
 
 // Keeps the author oriented without limiting them. Before each author message the harness tells
 // the agent the project's phase and priorities, and only now and then asks it to offer a change of
@@ -38,7 +49,7 @@ export class Guide {
 		const progress = projectProgress(this.dir);
 		this.before = progress;
 
-		const lines: string[] = [];
+		const lines: string[] = [`Participation: ${PARTICIPATION_RULES[participation(this.dir)]}`];
 		const label = (id: string | null) => (id ? (phase(id)?.label ?? id) : "");
 		lines.push(`Phase: ${label(progress.phase)} (${progress.phase}).${progress.plan ? ` Plan status: ${progress.plan.status}.` : " No plan page yet."}`);
 		if (progress.next.length) {

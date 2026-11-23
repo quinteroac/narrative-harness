@@ -11,6 +11,21 @@ export interface ProjectInfo {
 	created: string;
 }
 
+// How much the agent contributes to the game's content; it always keeps the process and coherence.
+export const PARTICIPATION = ["guardian", "colaborador", "coautor"] as const;
+export type Participation = (typeof PARTICIPATION)[number];
+
+export function participation(dir: string): Participation {
+	const { participacion } = parse(readFileSync(join(dir, "project.yaml"), "utf8")) ?? {};
+	return PARTICIPATION.includes(participacion) ? participacion : "colaborador";
+}
+
+export function setParticipation(dir: string, level: Participation): void {
+	if (!PARTICIPATION.includes(level)) throw new Error(`nivel de participación desconocido "${level}"`);
+	const file = join(dir, "project.yaml");
+	writeFileSync(file, stringify({ ...parse(readFileSync(file, "utf8")), participacion: level }));
+}
+
 export function projectDir(id: string): string {
 	if (!/^[a-z0-9-]+$/.test(id)) throw new Error("id de proyecto inválido");
 	const dir = join(config.projectsDir, id);
@@ -51,7 +66,7 @@ export function createProject(title: string): ProjectInfo {
 	mkdirSync(join(dir, ".harness"), { recursive: true });
 
 	const created = new Date().toISOString();
-	writeFileSync(join(dir, "project.yaml"), stringify({ created }));
+	writeFileSync(join(dir, "project.yaml"), stringify({ created, participacion: "colaborador" }));
 	writeFileSync(join(dir, ".gitignore"), ".harness/sessions/\n");
 	writePage(dir, { id: "portada", type: "portada", title, status: "borrador", visibility: "publica", fields: {}, relations: [], body: "" });
 
