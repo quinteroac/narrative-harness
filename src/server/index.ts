@@ -65,12 +65,14 @@ app.get("/api/projects/:p/page", (c) => {
 // Approving and locking belong to the author only; the agent has no tool for it.
 app.post("/api/projects/:p/status", async (c) => {
 	const dir = projectDir(c.req.param("p"));
-	const { id, status } = await c.req.json<{ id: string; status: Status }>();
+	const { id, status, force } = await c.req.json<{ id: string; status: Status; force?: boolean }>();
 	if (!STATUSES.includes(status)) throw new Error(`estado desconocido "${status}"`);
 	const page = readPage(dir, id);
 	if (status === "aprobada" || status === "bloqueada") {
 		const errors = verifyProject(dir).filter((i) => i.page === id && i.level === "error");
 		const missing = PAGE_TYPES.find((t) => t.type === page.type)?.fields.filter((f) => f.required && isEmpty(page.fields[f.key])) ?? [];
+		const open = (page.questions ?? []).filter((q) => !q.answer).length;
+		if (open && !force) return c.json({ error: `${page.title} tiene ${open} pregunta(s) abierta(s)`, openQuestions: open }, 409);
 		if (errors.length || missing.length) throw new Error(`no se puede ${status === "aprobada" ? "aprobar" : "bloquear"}: ${[...errors.map((e) => e.message), ...missing.map((f) => `falta "${f.label}"`)].join("; ")}`);
 	}
 	commitManualEdits(dir);

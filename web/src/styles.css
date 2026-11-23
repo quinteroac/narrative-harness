@@ -899,3 +899,31 @@ button.link {
 .onboarding p {
 	margin: 0 0 8px;
 }
+
+.trigger-row {
+	display: grid;
+	grid-template-columns: 1.4fr 1fr 1.6fr 1fr auto;
+	gap: 6px;
+	align-items: start;
+	margin-bottom: 6px;
+}
+
+.editor input.code {
+	font-family: ui-monospace, "SF Mono", Menlo, monospace;
+	font-size: 13px;
+}
+
+.exprs.triggers li {
+	padding: 4px 0;
+	border-bottom: 1px dashed var(--line);
+}
+
+.exprs.triggers li:last-child {
+	border-bottom: none;
+}
+
+@media (max-width: 800px) {
+	.trigger-row {
+		grid-template-columns: 1fr auto;
+	}
+}

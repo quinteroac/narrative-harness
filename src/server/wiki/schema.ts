@@ -2,9 +2,10 @@
 // Fields are kept loose on purpose: required fields only produce warnings while a page is a draft.
 
 // "fundamentos" is the plan's list of items: { titulo, paginas, cantidad?, nota? }.
-// "choice" takes one of `options`. "conditions" and "effects" are lists of expressions (see expr.ts).
+// "choice" takes one of `options`. "conditions" is a list of expressions (see expr.ts); "triggers" a list
+// of { cuando?, al?, entonces: [effects], nota? } (see mechanics.ts).
 // "value" is a literal of any type: true, false, a number or text.
-export type FieldKind = "text" | "number" | "list" | "boolean" | "fundamentos" | "choice" | "conditions" | "effects" | "value";
+export type FieldKind = "text" | "number" | "list" | "boolean" | "fundamentos" | "choice" | "conditions" | "triggers" | "value";
 
 export interface FieldDef {
 	key: string;
@@ -140,8 +141,8 @@ export const PAGE_TYPES: PageTypeDef[] = [
 			{ key: "familia", label: "Familia", kind: "choice", required: true, options: MECHANIC_FAMILIES },
 			{ key: "acciones", label: "Acciones del jugador", kind: "list" },
 			{ key: "reglas", label: "Reglas", kind: "text", required: true },
-			{ key: "condiciones", label: "Condiciones", kind: "conditions", hint: "Una por línea, p. ej. afecto_grizka >= 10 and not rechazo_grizka # comentario" },
-			{ key: "efectos", label: "Efectos", kind: "effects", hint: "Uno por línea, p. ej. afecto_grizka += 2" },
+			{ key: "condiciones", label: "Condiciones", kind: "conditions", hint: "Lo que abre o cierra contenido sin cambiar el estado. Una por línea: nivel_rutas >= 2 # Zib disponible" },
+			{ key: "disparadores", label: "Disparadores", kind: "triggers", hint: "Cuándo cambia el estado: cuando una condición se cumple, o al ocurrir algo, entonces efectos" },
 			{ key: "retroalimentacion", label: "Retroalimentación", kind: "text", hint: "Cómo se entera el jugador" },
 			{ key: "enganches", label: "Enganches narrativos", kind: "text", hint: "Dónde se conecta con la estructura y el guion" },
 			{ key: "necesidades", label: "Necesidades", kind: "list", hint: "Pantallas para UX y assets para producción" },

@@ -4,7 +4,7 @@ import { api, type FieldDef, type Page, type PageSummary, type Relation, type Sc
 // Field values are edited as text and converted back to the card's types on save.
 function toText(field: FieldDef, value: unknown): string {
 	if (value === undefined || value === null) return "";
-	if ((field.kind === "list" || field.kind === "conditions" || field.kind === "effects") && Array.isArray(value)) return value.join("\n");
+	if ((field.kind === "list" || field.kind === "conditions") && Array.isArray(value)) return value.join("\n");
 	if (field.kind === "boolean") return value ? "si" : "no";
 	return String(value);
 }
@@ -12,11 +12,44 @@ function toText(field: FieldDef, value: unknown): string {
 function fromText(field: FieldDef, text: string): unknown {
 	const t = text.trim();
 	if (!t) return undefined;
-	if (field.kind === "list" || field.kind === "conditions" || field.kind === "effects") return t.split("\n").map((s) => s.trim()).filter(Boolean);
+	if (field.kind === "list" || field.kind === "conditions") return t.split("\n").map((s) => s.trim()).filter(Boolean);
 	if (field.kind === "value") return t === "true" ? true : t === "false" ? false : Number.isNaN(Number(t)) ? t : Number(t);
 	if (field.kind === "boolean") return t === "si";
 	if (field.kind === "number") return Number.isNaN(Number(t)) ? t : Number(t);
 	return t;
+}
+
+interface Trigger {
+	cuando?: string;
+	al?: string;
+	entonces: string[];
+	nota?: string;
+}
+
+function TriggersEditor({ items, setItems }: { items: Trigger[]; setItems: (items: Trigger[]) => void }) {
+	const set = (i: number, patch: Partial<Trigger>) => setItems(items.map((it, n) => (n === i ? { ...it, ...patch } : it)));
+	return (
+		<div className="triggers-editor">
+			{items.map((t, i) => (
+				<div key={i} className="trigger-row">
+					<input className="code" placeholder="cuando (condición)" value={t.cuando ?? ""} onChange={(e) => set(i, { cuando: e.target.value || undefined })} />
+					<input placeholder="al (momento del juego)" value={t.al ?? ""} onChange={(e) => set(i, { al: e.target.value || undefined })} />
+					<textarea
+						className="code"
+						rows={2}
+						placeholder="entonces: un efecto por línea"
+						value={t.entonces.join("\n")}
+						onChange={(e) => set(i, { entonces: e.target.value.split("\n") })}
+					/>
+					<input placeholder="Nota" value={t.nota ?? ""} onChange={(e) => set(i, { nota: e.target.value || undefined })} />
+					<button onClick={() => setItems(items.filter((_, n) => n !== i))} title="Quitar">
+						×
+					</button>
+				</div>
+			))}
+			<button onClick={() => setItems([...items, { entonces: [] }])}>Añadir disparador</button>
+		</div>
+	);
 }
 
 interface Fundamento {
@@ -86,6 +119,8 @@ export function PageEditor(props: {
 	const [visibility, setVisibility] = useState(page.visibility);
 	const [values, setValues] = useState(() => Object.fromEntries((def?.fields ?? []).map((f) => [f.key, toText(f, page.fields[f.key])])));
 	const [relations, setRelations] = useState<Relation[]>(page.relations);
+	const triggersKey = def?.fields.find((f) => f.kind === "triggers")?.key;
+	const [triggers, setTriggers] = useState<Trigger[]>(() => (triggersKey && Array.isArray(page.fields[triggersKey]) ? (page.fields[triggersKey] as Trigger[]) : []));
 	const planKey = def?.fields.find((f) => f.kind === "fundamentos")?.key;
 	const [fundamentos, setFundamentos] = useState<Fundamento[]>(() => (planKey && Array.isArray(page.fields[planKey]) ? (page.fields[planKey] as Fundamento[]) : []));
 	const [body, setBody] = useState(page.body);
@@ -99,6 +134,13 @@ export function PageEditor(props: {
 		// Fields not in the schema are kept as they were.
 		const fields: Record<string, unknown> = Object.fromEntries(Object.entries(page.fields).filter(([k]) => !def?.fields.some((f) => f.key === k)));
 		for (const f of def?.fields ?? []) {
+			if (f.kind === "triggers") {
+				const items = triggers
+					.map((t) => ({ ...t, entonces: t.entonces.map((l) => l.trim()).filter(Boolean) }))
+					.filter((t) => t.cuando || t.al || t.entonces.length);
+				if (items.length) fields[f.key] = items;
+				continue;
+			}
 			if (f.kind === "fundamentos") {
 				const items = fundamentos.filter((it) => it.titulo.trim());
 				if (items.length) fields[f.key] = items;
@@ -149,9 +191,11 @@ export function PageEditor(props: {
 					<span>
 						{f.label}
 						{f.required && <span className="req">*</span>}
-						{["list", "conditions", "effects"].includes(f.kind) && <small className="muted"> (uno por línea)</small>}
+						{["list", "conditions"].includes(f.kind) && <small className="muted"> (uno por línea)</small>}
 					</span>
-					{f.kind === "fundamentos" ? (
+					{f.kind === "triggers" ? (
+						<TriggersEditor items={triggers} setItems={setTriggers} />
+					) : f.kind === "fundamentos" ? (
 						<FundamentosEditor items={fundamentos} setItems={setFundamentos} pages={pages} />
 					) : f.kind === "choice" ? (
 						<select value={values[f.key]} onChange={(e) => setValues({ ...values, [f.key]: e.target.value })}>
@@ -172,7 +216,7 @@ export function PageEditor(props: {
 						<input type="number" value={values[f.key]} onChange={(e) => setValues({ ...values, [f.key]: e.target.value })} />
 					) : (
 						<textarea
-							className={f.kind === "conditions" || f.kind === "effects" ? "code" : undefined}
+							className={f.kind === "conditions" ? "code" : undefined}
 							rows={f.kind === "text" ? 2 : 3}
 							placeholder={f.hint}
 							value={values[f.key]}

@@ -25,6 +25,7 @@ The project's design lives in a wiki. Each page has a structured card (YAML fiel
 - Notes are for intentions, doubts and proposals; they are never shown to readers.
 - Open questions for the author go in the page's questions list, one per item, never in notes or prose. Don't repeat a question already listed on another page. When the author answers one, set its answer and apply the decision to the card and prose, so nothing stale remains.
 - Fields marked spoiler (arco, secretos) reveal story even on a public page.
+- When the author's message reports an answer to a page question, apply that decision everywhere it shows: card fields, prose, variables and rules. Nothing that contradicts it may remain.
 - When the author approves something in chat, show them the buttons with request_approval; you can't approve.
 - When a page's title changes enough that its id no longer fits, rename it with wiki_rename.
 - Read a page before updating it. Search before creating, so you don't duplicate a character or place.
@@ -66,6 +67,9 @@ A mechanic is a rule that lets the player act and the game respond. Every mechan
 - Conditions and effects use one shared language, one expression per line, with variable names taken from their ids: variable/afecto-grizka is afecto_grizka.
   Conditions: comparisons (== != > >= < <=), and, or, not, parentheses, numbers, "text", true, false. Example: afecto_grizka >= 10 and not rechazo_grizka
   Effects: name = value, name += n, name -= n. Example: afecto_grizka += 2
-  Text after # is a comment. Write only what the language can express; when a rule needs more (decay over time, randomness), describe it in reglas and add an open question, because extending the language is the author's call.
+  Text after # is a comment.
+  A mechanic states its formal rules in two fields. condiciones: what opens or closes content or options without changing state (nivel_rutas >= 2 # Zib disponible). disparadores: how state changes, each as { cuando: condition, entonces: [effects] } or, when a player action or story moment causes it, { al: "respuesta goblin acertada", entonces: [effects] }, plus an optional nota. Example: { cuando: 'afecto_gork >= 8 and recompensa_gork == "ninguna"', entonces: ['recompensa_gork = "menor"'] }.
+  These fields hold only the game's real rules, each once; they feed the state registry and, later, playthrough simulation. Illustrations and sample values go in ejemplo, never in condiciones or disparadores. A page still using an old "efectos" field must be migrated to disparadores.
+  Write only what the language can express; when a rule needs more (decay over time, randomness), describe it in reglas and add an open question, because extending the language is the author's call.
 - The verifier checks expressions, types, ranges and unknown variables, and warns about variables nobody changes or nobody reads. Run wiki_verify after writing mechanics and fix what it reports.`;
 }

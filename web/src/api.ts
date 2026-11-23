@@ -131,7 +131,18 @@ export const api = {
 	createProject: (title: string) => post<Project>("/projects", { title }),
 	pages: (project: string) => call<{ pages: PageSummary[]; broken: { id: string; error: string }[] }>(`${p(project)}/pages`),
 	page: (project: string, id: string) => call<PageDetail>(`${p(project)}/page?id=${encodeURIComponent(id)}`),
-	setStatus: (project: string, id: string, status: string) => post(`${p(project)}/status`, { id, status }),
+	// Approving a page with open questions asks the author to confirm first.
+	setStatus: async (project: string, id: string, status: string): Promise<boolean> => {
+		const res = await fetch(`/api${p(project)}/status`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status }) });
+		const data = await res.json();
+		if (res.status === 409 && data.openQuestions) {
+			if (!confirm(`${data.error}. ¿Aprobar igualmente?`)) return false;
+			await post(`${p(project)}/status`, { id, status, force: true });
+			return true;
+		}
+		if (!res.ok) throw new Error(data.error ?? res.statusText);
+		return true;
+	},
 	renamePage: (project: string, id: string, newId: string) => post<{ id: string }>(`${p(project)}/rename`, { id, newId }),
 	createPage: (project: string, type: string, title: string) => post<{ id: string }>(`${p(project)}/pages`, { type, title }),
 	savePage: (project: string, page: Page) => call<{ issues: Issue[] }>(`${p(project)}/page`, { method: "PUT", body: JSON.stringify(page) }),

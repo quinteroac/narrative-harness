@@ -58,6 +58,14 @@ function variableInfo(page: Page, issues: Issue[]): VarInfo | undefined {
 	return info;
 }
 
+// A trigger changes state: when a condition holds, or at a moment of the game, its effects apply.
+export interface Trigger {
+	cuando?: string;
+	al?: string;
+	entonces: string[];
+	nota?: string;
+}
+
 export function checkMechanics(pages: Page[]): { issues: Issue[]; registry: RegistryEntry[] } {
 	const issues: Issue[] = [];
 	const variables = pages.filter((p) => p.type === "variable");
@@ -73,28 +81,38 @@ export function checkMechanics(pages: Page[]): { issues: Issue[]; registry: Regi
 
 	for (const page of pages) {
 		const add = (message: string) => issues.push({ level: "error", page: page.id, message });
-		for (const line of asList(page.fields.condiciones)) {
+		const condition = (line: string, where: string) => {
 			try {
 				const node = parseCondition(line);
 				const errors: string[] = [];
 				const t = typeOf(node, env, errors);
 				if (t && t !== "bool") errors.push("una condición debe dar sí/no");
-				errors.forEach((e) => add(`condición "${line}": ${e}`));
+				errors.forEach((e) => add(`${where} "${line}": ${e}`));
 				refs(node).forEach((n) => mark(readers, n, page.id));
 			} catch (e) {
-				add(`condición "${line}": ${(e as Error).message}`);
+				add(`${where} "${line}": ${(e as Error).message}`);
 			}
-		}
-		for (const line of asList(page.fields.efectos)) {
+		};
+		const effect = (line: string, where: string) => {
 			try {
-				const effect = parseEffect(line);
-				checkEffect(effect, env).forEach((e) => add(`efecto "${line}": ${e}`));
-				mark(writers, effect.target, page.id);
-				refs(effect.value).forEach((n) => mark(readers, n, page.id));
+				const parsed = parseEffect(line);
+				checkEffect(parsed, env).forEach((e) => add(`${where} "${line}": ${e}`));
+				mark(writers, parsed.target, page.id);
+				refs(parsed.value).forEach((n) => mark(readers, n, page.id));
 			} catch (e) {
-				add(`efecto "${line}": ${(e as Error).message}`);
+				add(`${where} "${line}": ${(e as Error).message}`);
 			}
-		}
+		};
+		for (const line of asList(page.fields.condiciones)) condition(line, "condición");
+		const triggers = Array.isArray(page.fields.disparadores) ? (page.fields.disparadores as Trigger[]) : [];
+		triggers.forEach((t, i) => {
+			const where = `disparador ${i + 1}`;
+			if (!t?.cuando && !t?.al) add(`${where}: necesita "cuando" (condición) o "al" (momento del juego)`);
+			if (t?.cuando) condition(String(t.cuando), `${where}, cuando`);
+			const effects = asList(t?.entonces);
+			if (!effects.length) add(`${where}: falta "entonces"`);
+			effects.forEach((line) => effect(line, `${where}, entonces`));
+		});
 	}
 
 	const registry = variables.map((page): RegistryEntry => {

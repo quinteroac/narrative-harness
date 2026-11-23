@@ -111,6 +111,8 @@ export function PageView(props: {
 		try {
 			await api.savePage(project, { ...page, questions: questions.map((q) => (q.text === text ? { ...q, answer: reply.trim() } : q)) });
 			onChanged();
+			// The answer is a decision: the agent applies it to the card and prose.
+			api.send(project, `Respondí una pregunta de ${page.title} (${page.id}): "${text}" → ${reply.trim()}. Aplica la decisión en la wiki.`);
 		} catch (e) {
 			setError((e as Error).message);
 		}
@@ -183,7 +185,28 @@ export function PageView(props: {
 									<td>
 										{page.fields[f.key] === undefined ? (
 											"—"
-										) : (f.kind === "conditions" || f.kind === "effects") && Array.isArray(page.fields[f.key]) ? (
+										) : f.kind === "triggers" && Array.isArray(page.fields[f.key]) ? (
+											<ul className="exprs triggers">
+												{(page.fields[f.key] as { cuando?: string; al?: string; entonces?: string[]; nota?: string }[]).map((t, n) => (
+													<li key={n}>
+														{t.cuando && (
+															<div>
+																<span className="muted">cuando</span> <code>{t.cuando}</code>
+															</div>
+														)}
+														{t.al && (
+															<div>
+																<span className="muted">al</span> {t.al}
+															</div>
+														)}
+														<div>
+															<span className="muted">entonces</span> <code>{(t.entonces ?? []).join("; ")}</code>
+														</div>
+														{t.nota && <div className="muted small">{t.nota}</div>}
+													</li>
+												))}
+											</ul>
+										) : f.kind === "conditions" && Array.isArray(page.fields[f.key]) ? (
 											<ul className="exprs">
 												{(page.fields[f.key] as string[]).map((e, n) => (
 													<li key={n}>

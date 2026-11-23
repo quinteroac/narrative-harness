@@ -39,8 +39,9 @@ function checkPage(page: Page, file: string, ids: Set<string>, issues: Issue[]) 
 		if (field.kind === "list" && !Array.isArray(value)) add("error", `"${field.label}" debe ser una lista`);
 		if (field.kind === "boolean" && typeof value !== "boolean") add("error", `"${field.label}" debe ser sí/no`);
 		if (field.kind === "choice" && !field.options?.includes(String(value))) add("error", `"${field.label}" debe ser uno de: ${field.options?.join(", ")}`);
-		if ((field.kind === "conditions" || field.kind === "effects") && (!Array.isArray(value) || value.some((v) => typeof v !== "string")))
+		if (field.kind === "conditions" && (!Array.isArray(value) || value.some((v) => typeof v !== "string")))
 			add("error", `"${field.label}" debe ser una lista de expresiones, una por línea`);
+		if (field.kind === "triggers" && !Array.isArray(value)) add("error", `"${field.label}" debe ser una lista de { cuando, al, entonces }`);
 		if (field.kind === "fundamentos") {
 			if (!Array.isArray(value)) add("error", `"${field.label}" debe ser una lista`);
 			else
