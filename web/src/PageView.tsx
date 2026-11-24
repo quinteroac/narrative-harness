@@ -1,6 +1,6 @@
 import { marked } from "marked";
 import { useEffect, useState } from "react";
-import { api, type PageDetail, type PageSummary, type Schema } from "./api.ts";
+import { api, type MediaItem, type PageDetail, type PageSummary, type Schema } from "./api.ts";
 import { pageHref } from "./App.tsx";
 import { PageEditor } from "./PageEditor.tsx";
 
@@ -57,6 +57,44 @@ function FieldValue({ value, project }: { value: unknown; project: string }) {
 	return <>{String(value)}</>;
 }
 
+// The newest mockup large, older ones as thumbnails; a mockup made from an older card is marked.
+function Mockups({ project, page, media }: { project: string; page: PageDetail["page"]; media: MediaItem[] }) {
+	const [selected, setSelected] = useState(0);
+	useEffect(() => setSelected(0), [page.id, media.length]);
+	const generate = () => api.send(project, `Genera el mockup de ${page.title} (${page.id}).`);
+	if (!media.length)
+		return page.type === "pantalla" ? (
+			<section className="mockups empty">
+				<span className="muted">Sin mockup todavía.</span> <button onClick={generate}>Generar mockup</button>
+			</section>
+		) : null;
+	const shown = media[Math.min(selected, media.length - 1)];
+	const url = (m: MediaItem) => api.mediaUrl(project, page.id, m.file);
+	return (
+		<section className="mockups">
+			<a href={url(shown)} target="_blank" rel="noreferrer">
+				<img src={url(shown)} alt={`Mockup de ${page.title}`} />
+			</a>
+			<div className="mockup-bar">
+				<span className="muted small">
+					{new Date(shown.created).toLocaleString()} · {shown.size}
+					{shown.stale && <span className="badge stale" title="La ficha cambió después de generar este mockup">desactualizado</span>}
+				</span>
+				{page.type === "pantalla" && <button onClick={generate}>{shown.stale ? "Regenerar" : "Generar otro"}</button>}
+			</div>
+			{media.length > 1 && (
+				<div className="mockup-thumbs">
+					{media.map((m, i) => (
+						<button key={m.file} className={i === selected ? "selected" : ""} onClick={() => setSelected(i)} title={new Date(m.created).toLocaleString()}>
+							<img src={url(m)} alt="" loading="lazy" />
+						</button>
+					))}
+				</div>
+			)}
+		</section>
+	);
+}
+
 export function PageView(props: {
 	project: string;
 	pageId: string;
@@ -82,7 +120,7 @@ export function PageView(props: {
 	if (error) return <p className="muted">{error}</p>;
 	if (!detail) return null;
 
-	const { page, backlinks, issues, history } = detail;
+	const { page, backlinks, issues, history, media } = detail;
 	if (editing)
 		return (
 			<PageEditor
@@ -169,6 +207,8 @@ export function PageView(props: {
 					))}
 				</ul>
 			)}
+
+			<Mockups project={project} page={page} media={media} />
 
 			<div className="page-columns">
 				<div className="page-col">

@@ -28,14 +28,16 @@ export interface Page {
 	body: string;
 }
 
-// A singleton page ("portada", "plan") or "<type>/<slug>"
-export const ID_PATTERN = /^(portada|plan|[a-z]+\/[a-z0-9]+(?:-[a-z0-9]+)*)$/;
+// A singleton page ("portada", "plan", "ux") or "<type>/<slug>"
+export const ID_PATTERN = /^(portada|plan|ux|[a-z]+\/[a-z0-9]+(?:-[a-z0-9]+)*)$/;
 
 export const typeOfId = (id: string) => (id.includes("/") ? id.split("/")[0] : id);
 export const LINK_PATTERN = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
 
 const wikiDir = (projectDir: string) => join(projectDir, "wiki");
 const pagePath = (projectDir: string, id: string) => join(wikiDir(projectDir), `${id}.md`);
+// Images of a page (mockups) live beside the wiki, one folder per page, with a JSON sidecar each.
+export const mediaDir = (projectDir: string, id: string) => join(projectDir, "media", id);
 
 export function serializePage(page: Page): string {
 	const { body, ...card } = page;
@@ -114,6 +116,10 @@ export function renamePage(projectDir: string, oldId: string, newId: string): st
 	const page = readPage(projectDir, oldId);
 	writePage(projectDir, { ...page, id: newId });
 	rmSync(pagePath(projectDir, oldId));
+	if (existsSync(mediaDir(projectDir, oldId))) {
+		mkdirSync(dirname(mediaDir(projectDir, newId)), { recursive: true });
+		renameSync(mediaDir(projectDir, oldId), mediaDir(projectDir, newId));
+	}
 
 	const touched: string[] = [];
 	for (const other of loadAll(projectDir).pages) {
@@ -133,6 +139,7 @@ export function renamePage(projectDir: string, oldId: string, newId: string): st
 export function deletePage(projectDir: string, id: string): void {
 	if (!id.includes("/")) throw new Error(`"${id}" no se puede borrar`);
 	rmSync(pagePath(projectDir, id));
+	rmSync(mediaDir(projectDir, id), { recursive: true, force: true });
 }
 
 export function bodyLinks(body: string): string[] {

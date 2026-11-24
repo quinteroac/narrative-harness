@@ -8,10 +8,11 @@ import { ProjectAgent } from "./agent/session.ts";
 import { config, ROOT } from "./config.ts";
 import { commit, commitManualEdits, createProject, history, listProjects, participation, projectDir, setParticipation, slugify, type Participation } from "./projects.ts";
 import { PAGE_TYPES, pageType, RELATION_TYPES, STATUSES, VISIBILITIES, type Status } from "./wiki/schema.ts";
-import { bodyLinks, deletePage, loadAll, pageExists, readPage, renamePage, writePage, type Page } from "./wiki/store.ts";
+import { bodyLinks, deletePage, loadAll, mediaDir, pageExists, readPage, renamePage, writePage, type Page } from "./wiki/store.ts";
 import { checkMechanics } from "./wiki/mechanics.ts";
 import { changePhase, projectProgress } from "./wiki/progress.ts";
 import { isEmpty, pageUsers, verifyProject } from "./wiki/verify.ts";
+import { listMedia } from "./wiki/media.ts";
 
 const agents = new Map<string, Promise<ProjectAgent>>();
 
@@ -59,6 +60,7 @@ app.get("/api/projects/:p/page", (c) => {
 		backlinks,
 		issues: verifyProject(dir).filter((i) => i.page === id),
 		history: history(dir, relative(dir, join(dir, "wiki", `${id}.md`))),
+		media: listMedia(dir, id),
 	});
 });
 
@@ -103,6 +105,15 @@ app.post("/api/projects/:p/rename", async (c) => {
 	renamePage(dir, id, newId);
 	commit(dir, `autor: renombra ${id} → ${newId}`);
 	return c.json({ id: newId });
+});
+
+// Only files listed for an existing page are served, so the query can't reach outside its media folder.
+app.get("/api/projects/:p/media", (c) => {
+	const dir = projectDir(c.req.param("p"));
+	const id = c.req.query("id") ?? "";
+	const file = c.req.query("file") ?? "";
+	if (!listMedia(dir, id).some((m) => m.file === file)) return c.json({ error: "no existe esa imagen" }, 404);
+	return c.body(readFileSync(join(mediaDir(dir, id), file)), 200, { "Content-Type": "image/png", "Cache-Control": "private, max-age=31536000, immutable" });
 });
 
 app.post("/api/projects/:p/delete", async (c) => {

@@ -4,8 +4,8 @@ import { pageHref } from "./App.tsx";
 
 const VISIBILITY_LABEL: Record<string, string> = { visible: "visible", insinuada: "insinuada", oculta: "oculta", revelada: "revelada" };
 
-function PageLinks({ project, ids }: { project: string; ids: string[] }) {
-	if (!ids.length) return <span className="muted">nadie</span>;
+function PageLinks({ project, ids, none = "nadie" }: { project: string; ids: string[]; none?: string }) {
+	if (!ids.length) return <span className="muted">{none}</span>;
 	return (
 		<>
 			{ids.map((id, i) => (
@@ -31,7 +31,7 @@ export function RegistryView({ project, revision }: { project: string; revision:
 		<article className="page registry">
 			<h1>Registro de estado</h1>
 			<p className="muted">
-				Todas las variables del juego. Quién las cambia y quién las lee sale de las condiciones y efectos escritos en las páginas.
+				Todas las variables del juego. Quién las cambia y quién las lee sale de las condiciones y efectos escritos en las páginas; dónde se ven, de las pantallas.
 			</p>
 			{entries.length === 0 ? (
 				<p className="muted">Aún no hay variables.</p>
@@ -47,6 +47,7 @@ export function RegistryView({ project, revision }: { project: string; revision:
 								<th>Jugador</th>
 								<th>La cambian</th>
 								<th>La leen</th>
+								<th>Se ve en</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -69,6 +70,9 @@ export function RegistryView({ project, revision }: { project: string; revision:
 									</td>
 									<td>
 										<PageLinks project={project} ids={e.readers} />
+									</td>
+									<td>
+										<PageLinks project={project} ids={e.screens} none="ninguna pantalla" />
 									</td>
 								</tr>
 							))}

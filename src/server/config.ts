@@ -16,4 +16,9 @@ export const config = {
 	// "provider/model" as pi names them, e.g. anthropic/claude-opus-5-5 or openrouter/<id>
 	model: get("MODEL", "anthropic/claude-opus-5-5"),
 	thinking: get("THINKING", "medium") as "off" | "low" | "medium" | "high",
+	// Local ComfyUI that renders screen mockups with Ming-Image 0.1 Design.
+	comfyUrl: get("COMFY_URL", "http://127.0.0.1:8188"),
+	mockupUnet: get("MOCKUP_UNET", "ming/ming_image_0.1_design_int8_convrot.safetensors"),
+	mockupClip: get("MOCKUP_CLIP", "ming/ming_image_0.1_ling_mini_2.0_int8_convrot.safetensors"),
+	mockupVae: get("MOCKUP_VAE", "ming/ming_image_vae_bf16.safetensors"),
 };

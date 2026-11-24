@@ -9,6 +9,8 @@ const TOOL_LABEL: Record<string, string> = {
 	wiki_search: "Busca",
 	wiki_write: "Escribe",
 	wiki_rename: "Renombra",
+	wiki_delete: "Borra",
+	generate_mockup: "Genera el mockup de",
 	wiki_verify: "Verifica la wiki",
 	request_approval: "Pide aprobación",
 };

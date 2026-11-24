@@ -942,3 +942,59 @@ button.link {
 		grid-template-columns: 1fr auto;
 	}
 }
+
+.mockups {
+	margin: 16px 0;
+}
+
+.mockups.empty {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.mockups img {
+	display: block;
+	width: 100%;
+	height: auto;
+	border: 1px solid var(--line);
+	border-radius: 6px;
+}
+
+.mockup-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-top: 6px;
+}
+
+.badge.stale {
+	margin-left: 8px;
+	background: transparent;
+	border: 1px solid var(--warn);
+	color: var(--warn);
+}
+
+.mockup-thumbs {
+	display: flex;
+	gap: 6px;
+	margin-top: 8px;
+	overflow-x: auto;
+}
+
+.mockup-thumbs button {
+	padding: 0;
+	border: 2px solid transparent;
+	background: none;
+	flex: none;
+}
+
+.mockup-thumbs button.selected {
+	border-color: var(--accent);
+}
+
+.mockup-thumbs img {
+	width: 120px;
+	border-radius: 4px;
+}

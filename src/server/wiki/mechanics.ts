@@ -17,6 +17,7 @@ export interface RegistryEntry {
 	revelacion?: string;
 	writers: string[];
 	readers: string[];
+	screens: string[];
 }
 
 const VALUE_TYPE: Record<string, ValueType> = { si_no: "bool", contador: "number", numero: "number", texto: "string", opcion: "string" };
@@ -77,7 +78,19 @@ export function checkMechanics(pages: Page[]): { issues: Issue[]; registry: Regi
 
 	const writers = new Map<string, Set<string>>();
 	const readers = new Map<string, Set<string>>();
+	const shown = new Map<string, Set<string>>();
 	const mark = (map: Map<string, Set<string>>, name: string, page: string) => map.set(name, (map.get(name) ?? new Set()).add(page));
+	const screens = pages.filter((p) => p.type === "pantalla");
+
+	// A screen lists what it shows as "name # how"; a trailing * matches several variables (afecto_*).
+	for (const page of screens) {
+		for (const line of asList(page.fields.muestra)) {
+			const name = line.split("#")[0].trim();
+			const matches = name.endsWith("*") ? [...env.keys()].filter((n) => n.startsWith(name.slice(0, -1))) : env.has(name) ? [name] : [];
+			if (!matches.length) issues.push({ level: "error", page: page.id, message: `muestra "${line}": no existe la variable ${name}` });
+			matches.forEach((n) => mark(shown, n, page.id));
+		}
+	}
 
 	for (const page of pages) {
 		const add = (message: string) => issues.push({ level: "error", page: page.id, message });
@@ -131,9 +144,15 @@ export function checkMechanics(pages: Page[]): { issues: Issue[]; registry: Regi
 			revelacion: f.revelacion as string | undefined,
 			writers: [...(writers.get(name) ?? [])],
 			readers: [...(readers.get(name) ?? [])],
+			screens: [...(shown.get(name) ?? [])],
 		};
 		if (!entry.writers.length) issues.push({ level: "aviso", page: page.id, message: "nadie la cambia: siempre vale su valor inicial" });
 		if (!entry.readers.length) issues.push({ level: "aviso", page: page.id, message: "nadie la lee: no influye en nada" });
+		// Only checked once the UX phase has screens, so earlier phases are not flooded with warnings.
+		if (screens.length && (entry.visibilidad === "visible" || entry.visibilidad === "revelada") && !entry.screens.length)
+			issues.push({ level: "aviso", page: page.id, message: `es ${entry.visibilidad} pero ninguna pantalla la muestra` });
+		if (entry.visibilidad === "oculta" && entry.screens.length)
+			issues.push({ level: "aviso", page: page.id, message: `es oculta pero la muestra ${entry.screens.join(", ")}` });
 		return entry;
 	});
 	return { issues, registry };

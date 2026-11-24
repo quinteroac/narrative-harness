@@ -37,6 +37,15 @@ export interface PageDetail {
 	backlinks: { id: string; title: string; type: string }[];
 	issues: Issue[];
 	history: { hash: string; date: string; message: string }[];
+	media: MediaItem[];
+}
+
+export interface MediaItem {
+	file: string;
+	created: string;
+	size: string;
+	seed: number;
+	stale: boolean;
 }
 
 export interface FieldDef {
@@ -61,6 +70,7 @@ export interface RegistryEntry {
 	revelacion?: string;
 	writers: string[];
 	readers: string[];
+	screens: string[];
 }
 
 export interface Schema {
@@ -156,5 +166,6 @@ export const api = {
 	chat: (project: string) => call<{ items: ChatItem[]; busy: boolean; model: string }>(`${p(project)}/chat`),
 	send: (project: string, message: string) => post(`${p(project)}/chat`, { message }),
 	abort: (project: string) => post(`${p(project)}/abort`, {}),
+	mediaUrl: (project: string, id: string, file: string) => `/api${p(project)}/media?id=${encodeURIComponent(id)}&file=${encodeURIComponent(file)}`,
 	events: (project: string) => new EventSource(`/api${p(project)}/events`),
 };

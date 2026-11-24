@@ -4,6 +4,8 @@ import { ID_PATTERN, deletePage, loadAll, pageExists, readPage, renamePage, seri
 import { pageType, PAGE_TYPES, PHASES } from "../wiki/schema.ts";
 import { changePhase } from "../wiki/progress.ts";
 import { pageUsers, verifyProject } from "../wiki/verify.ts";
+import { saveMockup } from "../wiki/media.ts";
+import { MOCKUP_SIZES, renderMockup } from "../comfy.ts";
 
 const text = (t: string) => ({ content: [{ type: "text" as const, text: t }], details: {} });
 
@@ -57,11 +59,11 @@ export function wikiTools(projectDir: string, changed: Set<string>): ToolDefinit
 		name: "wiki_write",
 		label: "Escribir página",
 		description:
-			"Create or update a wiki page. The page type comes from the id prefix (personaje/ana-robles), or the id is a single page: portada, plan. " +
+			"Create or update a wiki page. The page type comes from the id prefix (personaje/ana-robles), or the id is a single page: portada, plan, ux. " +
 			"On update, `fields` are merged key by key (a null value removes the key); `relations`, `body` and `notes` replace the old value when given. " +
 			"Any page you write becomes a draft (borrador); locked pages (bloqueada) cannot be written.",
 		parameters: Type.Object({
-			id: Type.String({ description: "portada, plan, or <type>/<slug> with lowercase ascii and dashes" }),
+			id: Type.String({ description: "portada, plan, ux, or <type>/<slug> with lowercase ascii and dashes" }),
 			title: Type.Optional(Type.String()),
 			fields: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
 			relations: Type.Optional(Type.Array(Type.Object({ type: Type.String(), target: Type.String(), note: Type.Optional(Type.String()) }))),
@@ -75,11 +77,11 @@ export function wikiTools(projectDir: string, changed: Set<string>): ToolDefinit
 			visibility: Type.Optional(Type.Union([Type.Literal("interna"), Type.Literal("spoiler"), Type.Literal("publica")])),
 		}),
 		async execute(_id, args) {
-			if (!ID_PATTERN.test(args.id)) throw new Error(`id inválido "${args.id}": usa portada, plan o tipo/nombre-en-minusculas`);
+			if (!ID_PATTERN.test(args.id)) throw new Error(`id inválido "${args.id}": usa portada, plan, ux o tipo/nombre-en-minusculas`);
 			const type = typeOfId(args.id);
 			const def = pageType(type);
 			if (!def || !!def.singleton === args.id.includes("/"))
-				throw new Error(`tipo desconocido "${type}". Tipos: ${PAGE_TYPES.filter((t) => !t.singleton).map((t) => t.type).join(", ")}; páginas únicas: portada, plan`);
+				throw new Error(`tipo desconocido "${type}". Tipos: ${PAGE_TYPES.filter((t) => !t.singleton).map((t) => t.type).join(", ")}; páginas únicas: ${PAGE_TYPES.filter((t) => t.singleton).map((t) => t.type).join(", ")}`);
 
 			const existing = pageExists(projectDir, args.id) ? readPage(projectDir, args.id) : undefined;
 			if (existing?.status === "bloqueada") throw new Error(`"${args.id}" está bloqueada por el autor; pídele que la desbloquee`);
@@ -145,6 +147,46 @@ export function wikiTools(projectDir: string, changed: Set<string>): ToolDefinit
 		},
 	});
 
+	const mockup = defineTool({
+		name: "generate_mockup",
+		label: "Generar mockup",
+		description:
+			"Render a visual mockup of a pantalla page with the image model (Ming-Image 0.1 Design on the author's ComfyUI) and attach it to the page. " +
+			"Takes about half a minute. Returns a preview image so you can check it. The prompt is a Figma-style layer description, see the UX section of your instructions.",
+		parameters: Type.Object({
+			id: Type.String({ description: "A pantalla page id" }),
+			prompt: Type.Object({
+				canvas_settings: Type.Object({ aspect_ratio: Type.String(), ambient_lighting: Type.String(), image_style: Type.String() }),
+				layers: Type.Array(
+					Type.Object({
+						description: Type.String(),
+						coordinates: Type.String({ description: 'Exactly "cx: 0.500, cy: 0.500, w: 1.000, h: 1.000", normalized' }),
+						hierarchy_and_relation: Type.String(),
+						color_specs: Type.Array(Type.String({ description: "Hex color" })),
+					}),
+					{ minItems: 1, description: "From the background to the topmost overlay" },
+				),
+			}),
+			size: Type.Optional(Type.Union(Object.keys(MOCKUP_SIZES).map((s) => Type.Literal(s)), { description: "Aspect ratio, default 16:9" })),
+			seed: Type.Optional(Type.Integer()),
+		}),
+		async execute(_id, { id, prompt, size = "16:9", seed = Math.floor(Math.random() * 2 ** 31) }) {
+			if (!pageExists(projectDir, id) || typeOfId(id) !== "pantalla") throw new Error(`"${id}" no es una página de pantalla`);
+			const bad = prompt.layers.filter((l) => !/^cx: [\d.]+, cy: [\d.]+, w: [\d.]+, h: [\d.]+$/.test(l.coordinates));
+			if (bad.length) throw new Error(`coordinates con formato inválido: ${bad.map((l) => l.coordinates).join("; ")}`);
+			const { image, preview } = await renderMockup(JSON.stringify(prompt), size, seed);
+			const file = saveMockup(projectDir, id, image, { size, seed, prompt });
+			changed.add(id);
+			return {
+				content: [
+					{ type: "text" as const, text: `Mockup guardado en ${id} (${file}, semilla ${seed}).` },
+					{ type: "image" as const, data: preview.toString("base64"), mimeType: "image/png" },
+				],
+				details: {},
+			};
+		},
+	});
+
 	const verify = defineTool({
 		name: "wiki_verify",
 		label: "Verificar wiki",
@@ -206,5 +248,5 @@ export function wikiTools(projectDir: string, changed: Set<string>): ToolDefinit
 		},
 	});
 
-	return [list, read, search, write, rename, remove, verify, ask, approval, setPhase] as ToolDefinition[];
+	return [list, read, search, write, rename, remove, mockup, verify, ask, approval, setPhase] as ToolDefinition[];
 }
