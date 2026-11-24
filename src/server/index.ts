@@ -12,7 +12,7 @@ import { bodyLinks, deletePage, loadAll, mediaDir, pageExists, readPage, renameP
 import { checkMechanics } from "./wiki/mechanics.ts";
 import { changePhase, projectProgress } from "./wiki/progress.ts";
 import { isEmpty, pageUsers, verifyProject } from "./wiki/verify.ts";
-import { listMedia } from "./wiki/media.ts";
+import { deleteMedia, listMedia } from "./wiki/media.ts";
 
 const agents = new Map<string, Promise<ProjectAgent>>();
 
@@ -114,6 +114,15 @@ app.get("/api/projects/:p/media", (c) => {
 	const file = c.req.query("file") ?? "";
 	if (!listMedia(dir, id).some((m) => m.file === file)) return c.json({ error: "no existe esa imagen" }, 404);
 	return c.body(readFileSync(join(mediaDir(dir, id), file)), 200, { "Content-Type": "image/png", "Cache-Control": "private, max-age=31536000, immutable" });
+});
+
+app.post("/api/projects/:p/media/delete", async (c) => {
+	const dir = projectDir(c.req.param("p"));
+	const { id, file } = await c.req.json<{ id: string; file: string }>();
+	commitManualEdits(dir);
+	deleteMedia(dir, id, file);
+	commit(dir, `autor: descarta ${file} de ${id}`);
+	return c.json({ ok: true });
 });
 
 app.post("/api/projects/:p/delete", async (c) => {

@@ -155,6 +155,7 @@ export const api = {
 	},
 	renamePage: (project: string, id: string, newId: string) => post<{ id: string }>(`${p(project)}/rename`, { id, newId }),
 	deletePage: (project: string, id: string) => post(`${p(project)}/delete`, { id }),
+	deleteMedia: (project: string, id: string, file: string) => post(`${p(project)}/media/delete`, { id, file }),
 	createPage: (project: string, type: string, title: string) => post<{ id: string }>(`${p(project)}/pages`, { type, title }),
 	savePage: (project: string, page: Page) => call<{ issues: Issue[] }>(`${p(project)}/page`, { method: "PUT", body: JSON.stringify(page) }),
 	setPhase: (project: string, phase: string) => post(`${p(project)}/phase`, { phase }),

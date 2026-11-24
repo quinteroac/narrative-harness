@@ -986,6 +986,11 @@ button.link {
 	border-radius: 6px;
 }
 
+.mockup-actions {
+	display: flex;
+	gap: 8px;
+}
+
 .mockup-bar {
 	display: flex;
 	align-items: center;

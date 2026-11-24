@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { mediaDir, pageExists, readPage, type Page } from "./store.ts";
 
@@ -46,4 +46,11 @@ export function listMedia(projectDir: string, id: string): MediaItem[] {
 			return { file, created: meta.created, size: meta.size, seed: meta.seed, stale: meta.card !== current };
 		})
 		.sort((a, b) => b.created.localeCompare(a.created));
+}
+
+export function deleteMedia(projectDir: string, id: string, file: string) {
+	if (!listMedia(projectDir, id).some((m) => m.file === file)) throw new Error("no existe esa imagen");
+	const dir = mediaDir(projectDir, id);
+	rmSync(join(dir, file));
+	rmSync(join(dir, `${file}.json`));
 }

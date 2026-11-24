@@ -58,7 +58,7 @@ function FieldValue({ value, project }: { value: unknown; project: string }) {
 }
 
 // The newest mockup large, older ones as thumbnails; a mockup made from an older card is marked.
-function Mockups({ project, page, media }: { project: string; page: PageDetail["page"]; media: MediaItem[] }) {
+function Mockups({ project, page, media, onChanged }: { project: string; page: PageDetail["page"]; media: MediaItem[]; onChanged: () => void }) {
 	const [selected, setSelected] = useState(0);
 	useEffect(() => setSelected(0), [page.id, media.length]);
 	const generate = () => api.send(project, `Genera el mockup de ${page.title} (${page.id}).`);
@@ -70,6 +70,15 @@ function Mockups({ project, page, media }: { project: string; page: PageDetail["
 		) : null;
 	const shown = media[Math.min(selected, media.length - 1)];
 	const url = (m: MediaItem) => api.mediaUrl(project, page.id, m.file);
+	async function discard() {
+		if (!confirm("¿Descartar este mockup? Se borra del proyecto (queda en el historial de git).")) return;
+		try {
+			await api.deleteMedia(project, page.id, shown.file);
+			onChanged();
+		} catch (e) {
+			alert((e as Error).message);
+		}
+	}
 	return (
 		<section className="mockups">
 			<a href={url(shown)} target="_blank" rel="noreferrer">
@@ -80,7 +89,10 @@ function Mockups({ project, page, media }: { project: string; page: PageDetail["
 					{new Date(shown.created).toLocaleString()} · {shown.size}
 					{shown.stale && <span className="badge stale" title="La ficha cambió después de generar este mockup">desactualizado</span>}
 				</span>
-				{page.type === "pantalla" && <button onClick={generate}>{shown.stale ? "Regenerar" : "Generar otro"}</button>}
+				<span className="mockup-actions">
+					<button onClick={discard}>Descartar</button>
+					{page.type === "pantalla" && <button onClick={generate}>{shown.stale ? "Regenerar" : "Generar otro"}</button>}
+				</span>
 			</div>
 			{media.length > 1 && (
 				<div className="mockup-thumbs">
@@ -208,7 +220,7 @@ export function PageView(props: {
 				</ul>
 			)}
 
-			<Mockups project={project} page={page} media={media} />
+			<Mockups project={project} page={page} media={media} onChanged={onChanged} />
 
 			<div className="page-columns">
 				<div className="page-col">
