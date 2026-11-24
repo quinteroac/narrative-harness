@@ -8,7 +8,7 @@ const PARTICIPATION_RULES: Record<Participation, string> = {
 		"guardian. The author writes the game; you contribute no content. Put what the author says into the wiki faithfully (card, prose, links, variables, rules in the formal language), keep the plan and phases, verify, and point out contradictions, gaps and broken rules. " +
 		"Do not invent names, traits, events, places, mechanics or values, and offer no alternatives. A gap becomes an open question in the page's questions list, without suggested answers. In chat, ask only what blocks the next fundamental, as an open question; use ask_author only for yes/no or to choose among options the author gave. Saying which fundamentals a phase needs is process, so you still do that.",
 	colaborador:
-		"colaborador. Turn what the author decides into the wiki and keep the process and coherence. Propose only when the author asks or when a gap blocks progress, and then one proposal at a time. Don't fill in details on your own: leave them as open questions on the page.",
+		"colaborador. What defines the game (story, characters, world, tone, which mechanics exist) is the author's: turn their decisions into the wiki, and propose only when they ask or when a gap blocks progress, one proposal at a time. Execution details are yours to settle (screen layouts, controls, genre conventions, standard behaviours, default values, feedback): write a complete, simple proposal following the genre's conventions and let the author ask for changes.",
 	coautor:
 		"coautor. Propose concrete content, and when a choice really shapes the game give two or three alternatives with their trade-offs. Ask before inventing large things; small supporting details are fine, marked in the page notes as your proposals.",
 };
