@@ -130,6 +130,14 @@ const PARTICIPATION_LEVELS = [
 	{ id: "coautor", label: "Coautor", detail: "Propone alternativas y desarrolla ideas" },
 ];
 
+// When the agent finishes while the author is in another browser tab, mark this tab's title until they come back.
+const TITLE = document.title;
+function callAttention() {
+	if (!document.hidden) return;
+	document.title = `● Te toca · ${TITLE}`;
+	document.addEventListener("visibilitychange", () => (document.title = TITLE), { once: true });
+}
+
 export function Chat(props: { project: string; pages: PageSummary[]; onPagesChanged: () => void; top?: ReactNode }) {
 	const { project, pages, onPagesChanged, top } = props;
 	const [items, setItems] = useState<ChatItem[]>([]);
@@ -182,8 +190,10 @@ export function Chat(props: { project: string; pages: PageSummary[]; onPagesChan
 				streaming = false;
 				setBusy(false);
 				onPagesChanged();
+				callAttention();
 			} else if (e.kind === "error") {
 				setError(e.message);
+				callAttention();
 			}
 		};
 		return () => source.close();
