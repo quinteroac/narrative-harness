@@ -16,6 +16,28 @@ export const pageHref = (project: string, id: string) => `#/${project}/p/${id}`;
 
 const STATUS_LABEL: Record<string, string> = { borrador: "borrador", aprobada: "aprobada", bloqueada: "bloqueada", desactualizada: "desactualizada" };
 
+const fold = (text: string) => text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+// Sidebar sections the author folded, remembered per browser.
+function useCollapsed(): [Set<string>, (type: string) => void] {
+	const [collapsed, setCollapsed] = useState(() => {
+		try {
+			return new Set<string>(JSON.parse(localStorage.getItem("collapsed-sections") ?? "[]"));
+		} catch {
+			return new Set<string>();
+		}
+	});
+	const toggle = (type: string) => {
+		const next = new Set(collapsed);
+		if (!next.delete(type)) next.add(type);
+		setCollapsed(next);
+		try {
+			localStorage.setItem("collapsed-sections", JSON.stringify([...next]));
+		} catch {}
+	};
+	return [collapsed, toggle];
+}
+
 export function App() {
 	const [route, setRoute] = useState(parseHash);
 	const [projects, setProjects] = useState<Project[]>([]);
@@ -23,6 +45,8 @@ export function App() {
 	const [pages, setPages] = useState<PageSummary[]>([]);
 	const [revision, setRevision] = useState(0);
 	const [mobileTab, setMobileTab] = useState<"wiki" | "chat">("chat");
+	const [filter, setFilter] = useState("");
+	const [collapsed, toggleSection] = useCollapsed();
 	const [error, setError] = useState("");
 	const [editing, setEditing] = useState(false);
 	const editAfterNavigation = useRef("");
@@ -126,13 +150,21 @@ export function App() {
 						<button className="side-button" onClick={newPage}>
 							+ Nueva página
 						</button>
+						<input className="side-filter" type="search" placeholder="Filtrar páginas" value={filter} onChange={(e) => setFilter(e.target.value)} />
 						{schema?.pageTypes.map((t) => {
-							const ofType = pages.filter((p) => p.type === t.type);
+							const ofType = pages.filter((p) => p.type === t.type && (fold(p.title).includes(fold(filter)) || p.id.includes(fold(filter))));
 							if (!ofType.length) return null;
+							// While filtering every section is open; a folded section still shows the open page.
+							const folded = !filter && collapsed.has(t.type);
+							const shown = folded ? ofType.filter((p) => p.id === route.pageId) : ofType;
 							return (
 								<section key={t.type}>
-									<h3>{t.plural}</h3>
-									{ofType.map((p) => (
+									<h3>
+										<button className="section-toggle" onClick={() => toggleSection(t.type)}>
+											{folded ? "▸" : "▾"} {t.plural} <span className="count">{ofType.length}</span>
+										</button>
+									</h3>
+									{shown.map((p) => (
 										<a
 											key={p.id}
 											className={`side-link ${route.pageId === p.id ? "active" : ""}`}
